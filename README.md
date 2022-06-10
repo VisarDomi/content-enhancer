@@ -49,6 +49,7 @@ Pagination - to be designed
 - There is also an info button for nh manga, on the bottom left (50vw, 50vh)
 
 ## TODO:
+- fix load more button
 - merge content-enhancer with nh-reader
 - merge content-enhancer with asura-scans-reader
 - change the resulting merge to use OOP

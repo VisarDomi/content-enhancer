@@ -12,7 +12,7 @@ async function loadL1(): Promise<void> {
     setNextPage(responseDocument);
 
     if (np !== undefined) {
-        if (pc < 1) { //don't load the 11th page unless we load it with a load more button
+        if (pc < 2) { //don't load the 11th page unless we load it with a load more button
             await loadL1();
         } else {
             //TODO: the load more button will load the next 10 pages and destroy the current 10 pages
@@ -20,6 +20,7 @@ async function loadL1(): Promise<void> {
             loadMoreButton.className = "load-more";
             loadMoreButton.innerText = "Load More";
             l1Container.appendChild(loadMoreButton);
+            loadMoreButton.onclick = loadL1; // recursion
         }
     }
 }
