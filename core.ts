@@ -1,13 +1,14 @@
-let pageCounter: number = 1;
-let nextPage: HTMLAnchorElement;
-let scrollPosition: number;
-let href: string;
-const TOKYOMOTION: string = "tokyomotion";
-const KISSJAV: string = "kissjav";
-const NHENTAI: string = "nhentai";
+let pc: number = 1; // page counter
+let np: HTMLAnchorElement; // next page
+let l1sp: number; // level 1 scroll position
+let oh: string; // original href
+const L1 = "l1-container"; // level 1 container id
+const TM: string = "tokyomotion";
+const KJ: string = "kissjav";
+const NH: string = "nhentai";
 
 (async ()=>{
-    href = location.href;
+    oh = location.href;
     setNextPage(document);
 
     // collect the thumbnails before the html element is removed
@@ -30,37 +31,35 @@ const NHENTAI: string = "nhentai";
     html.appendChild(body);
     document.appendChild(html);
 
-    // create a container for the thumbnails
-    const thumbnailsContainer: HTMLDivElement = document.createElement("div");
-    thumbnailsContainer.id = "thumbnails-container";
-    body.appendChild(thumbnailsContainer);
+    // create level 1
+    const l1Container: HTMLDivElement = document.createElement("div");
+    l1Container.id = L1;
+    body.appendChild(l1Container);
 
     // append the thumbnails to the container
     for (const thumbnailImage of thumbnailImages) {
-        thumbnailsContainer.appendChild(thumbnailImage);
+        l1Container.appendChild(thumbnailImage);
     }
 
     // load the thumbnails of the next page
-    // TODO: set a limit here, just 10 pages at a time, with a load more button
-    await loadFirstLevel();
+    await loadL1();
 })();
-
 
 function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
     const thumbnailImages: HTMLImageElement[] = [];
     let thumbnailList: HTMLCollectionOf<HTMLElement>;
-    if (href.includes(TOKYOMOTION)) {
+    if (oh.includes(TM)) {
         thumbnailList = responseDocument.getElementsByClassName("thumb-popu") as HTMLCollectionOf<HTMLAnchorElement>;
-    } else if (href.includes(KISSJAV)) {
+    } else if (oh.includes(KJ)) {
         thumbnailList = responseDocument.getElementsByClassName("videos")[0].children as HTMLCollectionOf<HTMLLIElement>;
     }
     for (const thumbnailElement of thumbnailList) {
         let secondLevelHref: HTMLAnchorElement;
         let firstLevelThumbnailImage: HTMLImageElement;
-        if (href.includes(TOKYOMOTION)) {
+        if (oh.includes(TM)) {
             secondLevelHref = thumbnailElement as HTMLAnchorElement;
             firstLevelThumbnailImage = secondLevelHref.children[0].children[0] as HTMLImageElement;
-        } else if (href.includes(KISSJAV)) {
+        } else if (oh.includes(KJ)) {
             secondLevelHref = thumbnailElement.children[0].children[0].children[0].children[0] as HTMLAnchorElement;
             firstLevelThumbnailImage = secondLevelHref?.children[0] as HTMLImageElement;
             if (firstLevelThumbnailImage === undefined) {
@@ -72,7 +71,7 @@ function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
         }
         const thumbnailImage: HTMLImageElement = new Image();
         thumbnailImage.setAttribute("data-href", secondLevelHref.href);
-        thumbnailImage.setAttribute("onclick", "loadSecondLevel(this)"); // we do it this way to split the code into several files
+        thumbnailImage.setAttribute("onclick", "loadL2(this)"); // we do it this way to split the code into several files
         thumbnailImage.src = firstLevelThumbnailImage.src;
         thumbnailImages.push(thumbnailImage);
     }
@@ -95,11 +94,11 @@ async function waitFor(milliseconds: number): Promise<void> {
 
 function setNextPage(currentDocument: Document): void {
     // set pagination parameters
-    if (href.includes(TOKYOMOTION)) {
-        nextPage = currentDocument.getElementsByClassName("prevnext")[0] as HTMLAnchorElement;
-    } else if (href.includes(KISSJAV)) {
-        nextPage = currentDocument.getElementsByClassName("pagination-next")[0] as HTMLAnchorElement;
-    } else if (href.includes(NHENTAI)) {
-        nextPage = currentDocument.getElementsByClassName("last")[0] as HTMLAnchorElement;
+    if (oh.includes(TM)) {
+        np = currentDocument.getElementsByClassName("prevnext")[0] as HTMLAnchorElement;
+    } else if (oh.includes(KJ)) {
+        np = currentDocument.getElementsByClassName("pagination-next")[0] as HTMLAnchorElement;
+    } else if (oh.includes(NH)) {
+        np = currentDocument.getElementsByClassName("last")[0] as HTMLAnchorElement;
     }
 }

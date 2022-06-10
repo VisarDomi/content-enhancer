@@ -49,7 +49,7 @@ Pagination - to be designed
 - There is also an info button for nh manga, on the bottom left (50vw, 50vh)
 
 ## TODO:
-- modify nh-reader to use the latest structure
-- modify asura-scans-reader to be similar to nh-reader
-- merge erodouga-viewer with nh-reader and asura-scans-reader
+- merge content-enhancer with nh-reader
+- merge content-enhancer with asura-scans-reader
 - change the resulting merge to use OOP
+- add 1stkissmanga to the list of supported nh manga sites -> how easy is it to implement?
