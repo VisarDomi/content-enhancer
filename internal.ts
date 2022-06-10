@@ -32,7 +32,7 @@ const NHENTAI: string = "nhentai";
 
     // create a container for the thumbnails
     const thumbnailsContainer: HTMLDivElement = document.createElement("div");
-    thumbnailsContainer.id = "thumbnailsContainer";
+    thumbnailsContainer.id = "thumbnails-container";
     body.appendChild(thumbnailsContainer);
 
     // append the thumbnails to the container
@@ -72,7 +72,7 @@ function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
         }
         const thumbnailImage: HTMLImageElement = new Image();
         thumbnailImage.setAttribute("data-href", secondLevelHref.href);
-        thumbnailImage.setAttribute("onclick", "loadSecondLevel(this)")
+        thumbnailImage.setAttribute("onclick", "loadSecondLevel(this)"); // we do it this way to split the code into several files
         thumbnailImage.src = firstLevelThumbnailImage.src;
         thumbnailImages.push(thumbnailImage);
     }

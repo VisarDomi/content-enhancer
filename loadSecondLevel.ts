@@ -1,29 +1,29 @@
-async function loadSecondLevel(image: HTMLImageElement): Promise<void> {
-    const href: string = image.getAttribute("data-href");
-    const loaded: boolean = (image.getAttribute("data-loaded") === "true");
-    if (!loaded) {
+async function loadSecondLevel(thumbnailImage: HTMLImageElement): Promise<void> {
+    const href: string = thumbnailImage.getAttribute("data-href");
+    const videoLoaded: boolean = (thumbnailImage.getAttribute("data-video-loaded") === "true");
+    if (!videoLoaded) {
         // add an orange background
-        const div: HTMLDivElement = document.createElement("div");
-        div.id = "div" + href;
-        div.setAttribute("style", "background-color:orange;opacity:0.8;");
-        image.after(div);
-        div.appendChild(image);
-        image.setAttribute("style", "opacity:0.03;");
+        const background: HTMLDivElement = document.createElement("div");
+        background.id = "div" + href;
+        background.className = "loading";
+        thumbnailImage.after(background);
+        background.appendChild(thumbnailImage);
+        thumbnailImage.className = "clicked";
 
         // get the video page
         const response: Response = await getResponse(href);
         const text: string = await response.text();
         const responseDocument: Document = new DOMParser().parseFromString(text, "text/html");
         // get the video
-        let edVideo: HTMLVideoElement;
+        let responseVideo: HTMLVideoElement;
 
         if (href.includes(TOKYOMOTION)) {
-            edVideo = responseDocument.getElementById("vjsplayer") as HTMLVideoElement;
+            responseVideo = responseDocument.getElementById("vjsplayer") as HTMLVideoElement;
         } else if (href.includes(KISSJAV)) {
-            edVideo = responseDocument.getElementById("player-fluid") as HTMLVideoElement;
+            responseVideo = responseDocument.getElementById("player-fluid") as HTMLVideoElement;
         }
 
-        const edSources: HTMLCollectionOf<HTMLSourceElement> = edVideo.getElementsByTagName("source") as HTMLCollectionOf<HTMLSourceElement>;
+        const responseSources: HTMLCollectionOf<HTMLSourceElement> = responseVideo.getElementsByTagName("source") as HTMLCollectionOf<HTMLSourceElement>;
 
         // create the video
         const video: HTMLVideoElement = document.createElement("video");
@@ -32,24 +32,24 @@ async function loadSecondLevel(image: HTMLImageElement): Promise<void> {
         video.preload = "auto";
         video.playsInline = true;
         video.muted = true;
-        video.setAttribute("style", "display:none;");
+        video.className = "hide";
 
         // select the best source
         const source: HTMLSourceElement = document.createElement("source");
-        source.src = getBestSource(edSources);
+        source.src = getBestSource(responseSources);
         video.appendChild(source);
         document.body.appendChild(video);
 
         // use onloadedmetadata because ios safari seems to not support oncanplaythrough
         video.onloadedmetadata = async () => {
+            video.onloadedmetadata = null; // activate this function just once
             await waitFor(1000); // wait for a sec
             await video.play();
             await waitFor(1000); // play the video for a sec
             video.pause();
             // show a green background
-            image.setAttribute("data-loaded", "true");
-            div.setAttribute("style", "background-color:green;opacity:0.8;");
-            image.setAttribute("style", "opacity:0.3;");
+            thumbnailImage.setAttribute("data-video-loaded", "true");
+            background.className = "loaded";
         }
         video.onerror = async () => {
             await waitFor(5000);
@@ -60,38 +60,45 @@ async function loadSecondLevel(image: HTMLImageElement): Promise<void> {
         scrollPosition = window.scrollY;
         window.scrollTo({top: 0});
 
-        // remove the loaded div
-        const imageDiv: HTMLDivElement = document.getElementById("div" + href) as HTMLDivElement;
-        imageDiv.after(image);
-        imageDiv.remove();
-        image.removeAttribute("data-loaded");
+        // remove the background
+        const background: HTMLDivElement = document.getElementById("div" + href) as HTMLDivElement;
+        background.after(thumbnailImage);
+        background.remove();
+        thumbnailImage.removeAttribute("data-video-loaded");
 
         // hide the thumbnails
-        const thumbnailsContainer: HTMLDivElement = document.getElementById("thumbnailsContainer") as HTMLDivElement;
-        thumbnailsContainer.setAttribute("style", "display:none;");
+        document.getElementById("thumbnails-container").className = "hide";
 
         // show the video
         const video: HTMLVideoElement = document.getElementById("video" + href) as HTMLVideoElement;
-        video.setAttribute("style", "margin-top:100px;");
+        video.className = "show";
+
+        // show refresh video
+        const refresh: HTMLButtonElement = document.createElement("button");
+        refresh.className = "refresh";
+        refresh.type = "button";
+        refresh.onclick = refreshVideo;
+        refresh.innerText = "Reload the video";
+        video.after(refresh);
 
         // show the red back button
         const div: HTMLDivElement = document.createElement("div");
-        div.setAttribute("onclick", "goBack(this)");
-        div.setAttribute("style", "width:100%;height:100vh;background-color:darkred;opacity:0.8;");
+        div.className = "go-back";
+        div.onclick = goBack;
         div.id = href;
-        video.after(div);
+        refresh.after(div);
     }
 }
 
-function goBack(div: HTMLDivElement): void {
-    // show the thumbnails
-    const thumbnailsContainer: HTMLDivElement = document.getElementById("thumbnailsContainer") as HTMLDivElement;
-    thumbnailsContainer.setAttribute("style", "display:block;");
+function refreshVideo(): void {
+    document.getElementsByTagName("video")[0].load();
+}
 
-    // remove the video
-    const video: HTMLVideoElement = document.getElementById("video" + div.id) as HTMLVideoElement;
-    video.remove();
-    div.remove();
+function goBack(): void {
+    document.getElementById("thumbnails-container").className = "show";
+    document.getElementsByTagName("video")[0].remove();
+    document.getElementsByClassName("refresh")[0].remove();
+    document.getElementsByClassName("go-back")[0].remove();
 
     // scroll to the saved position
     window.scrollTo({top: scrollPosition});
