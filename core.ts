@@ -52,6 +52,8 @@ function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
         thumbnailList = responseDocument.getElementsByClassName("thumb-popu") as HTMLCollectionOf<HTMLAnchorElement>;
     } else if (oh.includes(KJ)) {
         thumbnailList = responseDocument.getElementsByClassName("videos")[0].children as HTMLCollectionOf<HTMLLIElement>;
+    } else if (oh.includes(NH)) {
+        thumbnailList = responseDocument.getElementsByClassName("index-container")[0].children as HTMLCollectionOf<HTMLDivElement>;
     }
     for (const thumbnailElement of thumbnailList) {
         let secondLevelHref: HTMLAnchorElement;
@@ -65,9 +67,12 @@ function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
             if (firstLevelThumbnailImage === undefined) {
                 continue; // don't do anything, it's an ad
             }
-            if (firstLevelThumbnailImage.src.includes("loading.jpg")) {
-                firstLevelThumbnailImage.src = firstLevelThumbnailImage.getAttribute("data-src");
-            }
+        } else if (oh.includes(NH)) {
+            secondLevelHref = thumbnailElement.children[0] as HTMLAnchorElement;
+            firstLevelThumbnailImage = secondLevelHref.children[0] as HTMLImageElement;
+        }
+        if (firstLevelThumbnailImage.getAttribute("data-src") !== null) {
+            firstLevelThumbnailImage.src = firstLevelThumbnailImage.getAttribute("data-src");
         }
         const thumbnailImage: HTMLImageElement = new Image();
         thumbnailImage.setAttribute("data-href", secondLevelHref.href);
@@ -99,6 +104,6 @@ function setNextPage(currentDocument: Document): void {
     } else if (oh.includes(KJ)) {
         np = currentDocument.getElementsByClassName("pagination-next")[0] as HTMLAnchorElement;
     } else if (oh.includes(NH)) {
-        np = currentDocument.getElementsByClassName("last")[0] as HTMLAnchorElement;
+        np = currentDocument.getElementsByClassName("next")[0] as HTMLAnchorElement;
     }
 }

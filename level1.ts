@@ -12,10 +12,10 @@ async function loadL1(): Promise<void> {
     setNextPage(responseDocument);
 
     if (np !== undefined) {
-        if (pc < 2) { //don't load the 11th page unless we load it with a load more button
+        // TODO: change this from 2 to 10 after development
+        if (pc < 2) {
             await loadL1();
         } else {
-            //TODO: the load more button will load the next 10 pages and destroy the current 10 pages
             const loadMoreButton: HTMLButtonElement = document.createElement("button");
             loadMoreButton.className = "load-more";
             loadMoreButton.innerText = "Load More";
