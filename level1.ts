@@ -1,6 +1,6 @@
 async function loadL1(): Promise<void> {
     pc++;
-    const response: Response = await getResponse(np.href);
+    const response: Response = await getResponse(nrp.href);
     const text: string = await response.text();
     const responseDocument: Document = new DOMParser().parseFromString(text, "text/html");
     const thumbnailsImages: HTMLImageElement[] = getThumbnailImages(responseDocument);
@@ -9,11 +9,10 @@ async function loadL1(): Promise<void> {
         l1Container.appendChild(thumbnailImage);
     }
 
-    setNextPage(responseDocument);
+    setNextResultPage(responseDocument);
 
-    if (np !== undefined) {
-        // TODO: change this from 2 to 10 after development
-        if (pc < 2) {
+    if (nrp !== undefined) {
+        if (pc < 2) { // TODO: change this from 2 to 10 after development
             await loadL1();
         } else {
             const loadMoreButton: HTMLButtonElement = document.createElement("button");
