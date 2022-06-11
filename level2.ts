@@ -1,220 +1,187 @@
-async function loadL2(thumbnailImage: HTMLImageElement): Promise<void> {
-    const secondLevelHref: string = thumbnailImage.getAttribute("data-href");
+let level1ScrollPosition: number;
 
-    let contentType: string; // OOP as always is better
-    if (oh.includes(TM) || oh.includes(KJ)) {
-        contentType = "video";
-    } else if (oh.includes(NH)) {
-        contentType = "hmanga";
-    } else if (oh.includes(AS)) {
-        contentType = "nhmanga"
-    }
-
-    switch (contentType) { // OOP as always is better
-        case "video":
-            await handleVideo(secondLevelHref, thumbnailImage);
-            break;
-        case "hmanga":
-            await handleHManga(secondLevelHref);
-            break;
-        case "nhmanga":
-            await handleNhManga(secondLevelHref);
-            break;
+async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
+    // TODO: use OOP
+    if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) {
+        await loadVideo(searchResultsThumbnail);
+    } else if (originalHref.includes(NHENTAI)) {
+        await loadGalleryThumbnails(searchResultsThumbnail);
+    } else if (originalHref.includes(ASURASCANS)) {
+        await loadChapters(searchResultsThumbnail);
     }
 }
 
 function goToL1(l2ContainerId: string): void {
-    document.getElementById(L1).className = "show"; // show level 1
+    document.getElementById(L1_CONTAINER_ID).className = "show"; // show level 1
     document.getElementById(l2ContainerId).remove(); // destroy level 2
 
-    // break loop - stop requesting new images TODO: use OOP
-    bl = true;
-
     // scroll to the first level position
-    window.scrollTo({top: l1sp});
+    window.scrollTo({top: level1ScrollPosition});
 }
 
-async function handleVideo(secondLevelHref: string, thumbnailImage: HTMLImageElement): Promise<void> {
-    const l2ContainerId: string = "l2" + secondLevelHref;
-    const backgroundId = "bg" + secondLevelHref;
-    const videoLoaded: boolean = (thumbnailImage.getAttribute("data-load-status") === "loaded");
-    const videoLoading: boolean = (thumbnailImage.getAttribute("data-load-status") === "loading");
+async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
+    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
+    const l2ContainerId: string = "l2" + l2Href;
+    const backgroundId = "bg" + l2Href;
+    const videoLoaded: boolean = (searchResultsThumbnail.getAttribute("data-load-status") === "loaded");
+    const videoLoading: boolean = (searchResultsThumbnail.getAttribute("data-load-status") === "loading");
     if (videoLoaded) {
         // save the position
-        l1sp = window.scrollY;
+        level1ScrollPosition = window.scrollY;
         window.scrollTo({top: 0});
 
         // remove the load status
-        thumbnailImage.removeAttribute("data-load-status");
+        searchResultsThumbnail.removeAttribute("data-load-status");
         // remove the encompassing div
         const background: HTMLDivElement = document.getElementById(backgroundId) as HTMLDivElement;
-        background.after(thumbnailImage);
+        background.after(searchResultsThumbnail);
         background.remove();
 
         // hide the thumbnails and show the video container
-        document.getElementById(L1).className = "hide"; // hide level 1
+        document.getElementById(L1_CONTAINER_ID).className = "hide"; // hide level 1
         document.getElementById(l2ContainerId).className = "show"; // show level 2
     } else if (videoLoading) {
         // alert("wait for the video to load");
     } else {
         // after the first click, the video's load status is loading
         const background: HTMLDivElement = document.createElement("div");
-        thumbnailImage.setAttribute("data-load-status", "loading");
+        searchResultsThumbnail.setAttribute("data-load-status", "loading");
         background.id = backgroundId;
         background.className = "loading";
-        thumbnailImage.after(background);
-        background.appendChild(thumbnailImage);
-        thumbnailImage.className = "clicked";
+        searchResultsThumbnail.after(background);
+        searchResultsThumbnail.className = "clicked";
+        background.appendChild(searchResultsThumbnail);
 
         // create level 2
         const l2Container: HTMLDivElement = document.createElement("div");
-        document.body.appendChild(l2Container);
-        const video: HTMLVideoElement = document.createElement("video");
-        l2Container.appendChild(video);
-        const source: HTMLSourceElement = document.createElement("source");
-        const responseSources = await getResponseSources(secondLevelHref);
-        source.src = getBestSource(responseSources); // order matters
-        video.appendChild(source);
-        const refresh: HTMLButtonElement = document.createElement("button");
-        l2Container.appendChild(refresh);
-        const goToL1: HTMLDivElement = document.createElement("div");
-        l2Container.appendChild(goToL1);
-
-        // hide the video container
         l2Container.id = l2ContainerId;
         l2Container.className = "hide";
+        document.body.appendChild(l2Container);
 
-        // refresh attributes
-        refresh.className = "refresh";
-        refresh.type = "button";
-        refresh.onclick = refreshVideo;
-        refresh.innerText = "Reload the video";
+        // the video
+        const l2Video: HTMLVideoElement = document.createElement("video");
+        l2Video.controls = true;
+        l2Video.preload = "auto";
+        l2Video.playsInline = true;
+        l2Video.muted = true;
+        l2Video.onloadedmetadata = async () => {
+            l2Video.onloadedmetadata = null; // activate this function just once
+            // manually autoplay
+            await waitFor(100);
+            await l2Video.play();
+            await waitFor(100);
+            l2Video.pause();
+            // the video is loaded
+            searchResultsThumbnail.setAttribute("data-load-status", "loaded");
+            background.className = "loaded";
+        }
+        l2Video.onerror = async () => {
+            await waitFor(5000);
+            l2Video.load();
+        }
 
+        // the source
+        const l2Source: HTMLSourceElement = document.createElement("source");
+        const videoDocument: Document = await getResponseDocument(l2Href);
+        let video: HTMLVideoElement;
+        if (l2Href.includes(TOKYOMOTION)) { // TODO: use OOP
+            video = videoDocument.getElementById("vjsplayer") as HTMLVideoElement;
+        } else if (l2Href.includes(KISSJAV)) {
+            video = videoDocument.getElementById("player-fluid") as HTMLVideoElement;
+        }
+        const sources: NodeListOf<HTMLSourceElement> = video.querySelectorAll("source") as NodeListOf<HTMLSourceElement>;
+        // select the best source
+        let bestSource: string = null;
+        for (const source of sources) {
+            if (originalHref.includes(TOKYOMOTION) && source.src.includes("/hd/")) {
+                bestSource = source.src;
+            } else if (originalHref.includes(KISSJAV) && source.src.includes("720p")) {
+                bestSource = source.src;
+            }
+        }
+        if (bestSource === null) {
+            bestSource = sources[0].src;
+        }
+        // order matters (first get the source, then append)
+        l2Source.src = bestSource;
+        l2Video.appendChild(l2Source);
+        l2Container.appendChild(l2Video);
+
+        // the go back button
+        const goToL1: HTMLDivElement = document.createElement("div");
         // the red "go-back" div attributes
         goToL1.className = "go-video-l1";
         goToL1.setAttribute("onclick", 'goToL1("' + l2ContainerId + '")');
+        l2Container.appendChild(goToL1);
 
-        // video attributes
-        video.controls = true;
-        video.preload = "auto";
-        video.playsInline = true;
-        video.muted = true;
-
-        video.onloadedmetadata = async () => {
-            video.onloadedmetadata = null; // activate this function just once
-            await waitFor(100); // wait for a split second
-            await video.play();
-            await waitFor(100); // play the video for a split second
-            video.pause();
-            thumbnailImage.setAttribute("data-load-status", "loaded");
-            background.className = "loaded";
-        }
-        video.onerror = async () => {
-            await waitFor(5000);
-            video.load();
-        }
+        // refresh should be at the end of the page
+        const refresh: HTMLButtonElement = document.createElement("button");
+        refresh.className = "refresh";
+        refresh.type = "button";
+        refresh.onclick = () => {
+            video.scrollIntoView();
+            l2Video.load();
+        };
+        refresh.innerText = "Reload the video";
+        l2Container.appendChild(refresh);
     }
 }
 
-function refreshVideo(): void {
-    document.querySelector("video").load();
+function createGoToL1(l2Container: HTMLDivElement, functionName: string): void {
+    // the back button
+    const goToL1: HTMLDivElement = document.createElement("div");
+    goToL1.className = "go-back";
+    goToL1.setAttribute("onclick", functionName + "('" + l2Container.id + "')");
+    l2Container.appendChild(goToL1);
 }
 
-async function getResponseSources(secondLevelHref: string): Promise<HTMLCollectionOf<HTMLSourceElement>> {
-    // select the best source
-    const response: Response = await getResponse(secondLevelHref);
-    const text: string = await response.text();
-    const responseDocument: Document = new DOMParser().parseFromString(text, "text/html");
-    let responseVideo: HTMLVideoElement;
-    if (secondLevelHref.includes(TM)) {
-        responseVideo = responseDocument.getElementById("vjsplayer") as HTMLVideoElement;
-    } else if (secondLevelHref.includes(KJ)) {
-        responseVideo = responseDocument.getElementById("player-fluid") as HTMLVideoElement;
-    }
-
-    return responseVideo.getElementsByTagName("source") as HTMLCollectionOf<HTMLSourceElement>;
-}
-
-function getBestSource(edSources: HTMLCollectionOf<HTMLSourceElement>): string {
-    let bestSource: string = null;
-    for (const source of edSources) {
-        if (oh.includes(TM) && source.src.includes("/hd/")) {
-            bestSource = source.src;
-        } else if (oh.includes(KJ) && source.src.includes("720p")) {
-            bestSource = source.src;
-        }
-    }
-    if (bestSource === null) {
-        bestSource = edSources[0].src;
-    }
-
-    return bestSource;
-}
-
-async function handleHManga(secondLevelHref: string): Promise<void> {
+async function loadGalleryThumbnails(searchResultsThumbnail): Promise<void> {
     // scroll to the top - order matters
-    l1sp = window.scrollY;
+    level1ScrollPosition = window.scrollY;
     window.scrollTo({top: 0});
 
     // create level 2
-    const l2ContainerId = "l2-container";
+    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
+    const l2ContainerId: string = "l2" + l2Href;
     const l2Container: HTMLDivElement = document.createElement("div");
     l2Container.id = l2ContainerId;
     document.body.appendChild(l2Container);
-    document.getElementById(L1).className = "hide"; // hide level 1
+    document.getElementById(L1_CONTAINER_ID).className = "hide"; // hide level 1
+    createGoToL1(l2Container, "goToL1");
 
-    // the back button
-    const goToL1: HTMLDivElement = document.createElement("div");
-    goToL1.className = "go-manga-l1";
-    goToL1.setAttribute("onclick", "goToL1('" + l2ContainerId + "')");
-    l2Container.appendChild(goToL1);
+    // get the gallery thumbnails
+    const galleryDocument: Document = await getResponseDocument(l2Href);
+    const galleryThumbnails = getGalleryThumbnails(galleryDocument);
 
-    // get the gallery
-    const response: Response = await getResponse(secondLevelHref);
-    const text: string = await response.text();
-    const responseDocument: Document = new DOMParser().parseFromString(text, "text/html");
-
-    // set the next page TODO: use OOP
-    nip = responseDocument.querySelector(".gallerythumb") as HTMLAnchorElement;
-    bl = false; // break loop - start requesting new images
-
-    // load all the images recursively
-    await loadImage(l2Container);
-}
-
-async function loadImage(l2Container: HTMLDivElement): Promise<void> {
-    if (nip?.href !== "" && !bl) {
-        // get the next image page
-        const response: Response = await getResponse(nip.href);
-        const text: string = await response.text();
-        const responseDocument: Document = new DOMParser().parseFromString(text, "text/html");
-
-        // append the image to the container
-        const hMImage: HTMLImageElement = responseDocument.getElementById("image-container").children[0].children[0] as HTMLImageElement;
-        const image: HTMLImageElement = new Image();
-        image.src = hMImage.src;
-        l2Container.appendChild(image);
-
-        // set the next image
-        setNextImagePage(responseDocument);
-
-        // load the next image
-        image.onload = async () => {
-            await loadImage(l2Container);
-        }
-        image.onerror = async () => {
-            await waitFor(5000);
-            image.src = hMImage.src + "?time=" + Date.now();
-        }
+    // add the l2Container id as well
+    for (const galleryThumbnail of galleryThumbnails) {
+        galleryThumbnail.setAttribute("data-l2-id", l2ContainerId);
     }
+
+    // load the gallery thumbnails
+    await loadThumbnail(galleryThumbnails, l2Container);
 }
 
-async function handleNhManga(secondLevelHref: string): Promise<void> {
+function getGalleryThumbnails(galleryDocument: Document) {
+    const galleryThumbnails: HTMLImageElement[] = [];
+
+    // TODO: use OOP
+    const galleryThumbnailList: HTMLElement[] = Array.from(galleryDocument.querySelector(".thumbs").children as HTMLCollectionOf<HTMLDivElement>);
+    for (const galleryThumbnailElement of galleryThumbnailList) {
+
+        // TODO: use OOP
+        const l3ref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
+        const l2Thumbnail: HTMLImageElement = l3ref.children[0] as HTMLImageElement;
+
+        pushThumbnail(l2Thumbnail, l3ref, "loadL3", galleryThumbnails);
+    }
+
+    return galleryThumbnails;
+}
+
+async function loadChapters(searchResultsThumbnail: HTMLImageElement): Promise<void> {
+    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
+    const l2ContainerId: string = "l2" + l2Href;
     // asurascans goes in here
-}
-
-function setNextImagePage(responseDocument: Document): void {
-    // set the next image to be loaded TODO: use OOP here
-    nip = responseDocument.querySelector(".next") as HTMLAnchorElement;
 }
 

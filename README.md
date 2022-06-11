@@ -49,8 +49,7 @@ Pagination - to be designed
 - There is also an info button for nh manga, on the bottom left (50vw, 50vh)
 
 ## TODO:
-- fix load more button
-- merge content-enhancer with nh-reader
-- merge content-enhancer with asura-scans-reader
-- change the resulting merge to use OOP
-- add 1stkissmanga to the list of supported nh manga sites -> how easy is it to implement?
+- merge content-enhancer with asura-scans-reader -> level 2 should show a chapter list instead of gallery thumbnails
+- change the behavior from loading with a load more button, to load a new page when near the end of the results - using the intersection API
+- change the final merge to use OOP
+- add ytboob, e-hentai, and 1stkissmanga to the list -> how easy is it to implement now that we have OOP?

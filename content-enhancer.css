@@ -22,7 +22,7 @@ video {
 }
 
 .clicked {
-    opacity: 0.3;
+    opacity: 0.5;
 }
 
 .hide {
@@ -34,20 +34,28 @@ video {
 }
 
 .go-video-l1 {
-    width:100%;
-    height:100vh;
+    width: 100%;
+    height: 100vh;
     background-color: hsl(0, 50%, 25%);
 }
 
-.go-manga-l1 {
-    height:50%;
-    width:20%;
-    position:fixed;
-    top:0;
-    left:0;
+.go-back {
+    height: 30%;
+    width: 30%;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.go-back:active {
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .load-more, .refresh {
+    background-color: rgba(0, 0, 0, 0.5);
     margin-top: 200px;
     margin-bottom: 200px;
+    font-size: 2rem;
+    line-height: 3;
+    text-align: center;
 }

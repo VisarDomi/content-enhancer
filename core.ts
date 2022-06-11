@@ -1,27 +1,24 @@
-let pc: number = 1; // page counter
-let nrp: HTMLAnchorElement; // next result page
-let nip: HTMLAnchorElement; // next image page
-let l1sp: number; // level 1 scroll position
-let oh: string; // original href
-let bl: boolean; // break loop - don't send any more requests if you go back a level
-const L1 = "l1-container"; // level 1 container id
-const TM: string = "tokyomotion";
-const KJ: string = "kissjav";
-const NH: string = "nhentai";
-const AS: string = "asurascans";
+let nextSearchResultsHref: string;
+let originalHref: string;
+const L1_CONTAINER_ID: string = "l1-container";
+
+const TOKYOMOTION: string = "tokyomotion";
+const KISSJAV: string = "kissjav";
+const NHENTAI: string = "nhentai";
+const ASURASCANS: string = "asurascans";
 
 (async () => {
-    oh = location.href;
-    setNextResultPage(document);
+    originalHref = location.href;
+    setNextSearchResultsHref(document);
 
     // collect the thumbnails before the html element is removed
-    let thumbnailImages: HTMLImageElement[] = getThumbnailImages(document);
+    let searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(document);
 
     // set up the html
     const contentEnhancers: NodeListOf<HTMLScriptElement> = document.querySelectorAll(".content-enhancer") as NodeListOf<HTMLScriptElement>;
-    document.body.parentElement.remove(); // remove the html element
-    const body: HTMLBodyElement = document.createElement("body");
+    document.body.parentElement.remove(); // destroy everything
     const html: HTMLHtmlElement = document.createElement("html");
+    const body: HTMLBodyElement = document.createElement("body");
     const head: HTMLHeadElement = document.createElement("head");
     for (const contentEnhancer of contentEnhancers) {
         head.appendChild(contentEnhancer);
@@ -30,56 +27,84 @@ const AS: string = "asurascans";
     html.appendChild(body);
     document.appendChild(html);
 
-    // create level 1
+    // level 1
     const l1Container: HTMLDivElement = document.createElement("div");
-    l1Container.id = L1;
+    l1Container.id = L1_CONTAINER_ID;
     body.appendChild(l1Container);
 
-    // append the thumbnails to the container
-    for (const thumbnailImage of thumbnailImages) {
-        l1Container.appendChild(thumbnailImage);
-    }
-
-    // load the thumbnails of the next page
-    await loadL1();
+    await loadThumbnail(searchResultsThumbnails, l1Container, 0);
 })();
 
-function getThumbnailImages(responseDocument: Document): HTMLImageElement[] {
-    const thumbnailImages: HTMLImageElement[] = [];
-    let thumbnailList: any;
-    if (oh.includes(TM)) { // TODO: use OOP
-        thumbnailList = responseDocument.querySelectorAll(".thumb-popu") as NodeListOf<HTMLAnchorElement>;
-    } else if (oh.includes(KJ)) {
-        thumbnailList = responseDocument.querySelector(".videos").children as HTMLCollectionOf<HTMLLIElement>;
-    } else if (oh.includes(NH)) {
-        thumbnailList = responseDocument.querySelector(".index-container").children as HTMLCollectionOf<HTMLDivElement>;
+function setNextSearchResultsHref(currentDocument: Document): void {
+    let anchor: HTMLAnchorElement = null;
+    if (originalHref.includes(TOKYOMOTION)) { // TODO: use OOP
+        anchor = currentDocument.querySelector(".prevnext") as HTMLAnchorElement;
+    } else if (originalHref.includes(KISSJAV)) {
+        anchor = currentDocument.querySelector(".pagination-next") as HTMLAnchorElement;
+    } else if (originalHref.includes(NHENTAI)) {
+        anchor = currentDocument.querySelector(".next") as HTMLAnchorElement;
     }
-    for (const thumbnailElement of thumbnailList) {
-        let secondLevelHref: HTMLAnchorElement;
-        let firstLevelThumbnailImage: HTMLImageElement;
-        if (oh.includes(TM)) { // TODO: use OOP
-            secondLevelHref = thumbnailElement as HTMLAnchorElement;
-            firstLevelThumbnailImage = secondLevelHref.children[0].children[0] as HTMLImageElement;
-        } else if (oh.includes(KJ)) {
-            secondLevelHref = thumbnailElement.children[0].children[0].children[0].children[0] as HTMLAnchorElement;
-            firstLevelThumbnailImage = secondLevelHref?.children[0] as HTMLImageElement;
-            if (firstLevelThumbnailImage === undefined) {
+    nextSearchResultsHref = anchor === null ? "" : anchor.href;
+}
+
+function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElement[] {
+    const searchResultsThumbnails: HTMLImageElement[] = [];
+
+    // TODO: use OOP
+    const thumbnailList: HTMLElement[] = [];
+    if (originalHref.includes(TOKYOMOTION)) {
+        const selectedElements: NodeListOf<HTMLAnchorElement> = responseDocument.querySelectorAll(".thumb-popu") as NodeListOf<HTMLAnchorElement>;
+        thumbnailList.splice(0, 0, ...Array.from(selectedElements));
+    } else if (originalHref.includes(KISSJAV)) {
+        const selectedElements: HTMLCollectionOf<HTMLLIElement> = responseDocument.querySelector(".videos").children as HTMLCollectionOf<HTMLLIElement>;
+        thumbnailList.splice(0, 0, ...Array.from(selectedElements));
+    } else if (originalHref.includes(NHENTAI)) {
+        const selectedElements: HTMLCollectionOf<HTMLDivElement> = responseDocument.querySelector(".index-container").children as HTMLCollectionOf<HTMLDivElement>;
+        thumbnailList.splice(0, 0, ...Array.from(selectedElements));
+    }
+    for (const thumbnail of thumbnailList) {
+        let l2Href: HTMLAnchorElement;
+        let l1Thumbnail: HTMLImageElement;
+
+        // TODO: use OOP
+        if (originalHref.includes(TOKYOMOTION)) {
+            l2Href = thumbnail as HTMLAnchorElement;
+            l1Thumbnail = l2Href.children[0].children[0] as HTMLImageElement;
+        } else if (originalHref.includes(KISSJAV)) {
+            l2Href = thumbnail.children[0].children[0].children[0].children[0] as HTMLAnchorElement;
+            l1Thumbnail = l2Href?.children[0] as HTMLImageElement;
+            if (l1Thumbnail === undefined) {
                 continue; // don't do anything, it's an ad
             }
-        } else if (oh.includes(NH)) {
-            secondLevelHref = thumbnailElement.children[0] as HTMLAnchorElement;
-            firstLevelThumbnailImage = secondLevelHref.children[0] as HTMLImageElement;
+        } else if (originalHref.includes(NHENTAI)) {
+            l2Href = thumbnail.children[0] as HTMLAnchorElement;
+            l1Thumbnail = l2Href.children[0] as HTMLImageElement;
         }
-        if (firstLevelThumbnailImage.getAttribute("data-src") !== null) {
-            firstLevelThumbnailImage.src = firstLevelThumbnailImage.getAttribute("data-src");
-        }
-        const thumbnailImage: HTMLImageElement = new Image();
-        thumbnailImage.setAttribute("data-href", secondLevelHref.href);
-        thumbnailImage.setAttribute("onclick", "loadL2(this)"); // we do it this way to split the code into several files
-        thumbnailImage.src = firstLevelThumbnailImage.src;
-        thumbnailImages.push(thumbnailImage);
+
+        pushThumbnail(l1Thumbnail, l2Href, "loadL2", searchResultsThumbnails);
     }
-    return thumbnailImages;
+
+    return searchResultsThumbnails;
+}
+
+function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[]) {
+    // fix lazy-loading
+    if (levelThumbnail.getAttribute("data-src") !== null) {
+        levelThumbnail.src = levelThumbnail.getAttribute("data-src");
+    }
+
+    // we got all the needed data
+    const thumbnail: HTMLImageElement = new Image();
+    thumbnail.setAttribute("data-href", levelHref.href);
+    thumbnail.setAttribute("onclick", functionName + "(this)"); // we do it this way to split the code into several files
+    thumbnail.setAttribute("data-src", levelThumbnail.src);
+    thumbnails.push(thumbnail);
+}
+
+async function getResponseDocument(href: string): Promise<Document> {
+    const response: Response = await getResponse(href);
+    const text: string = await response.text();
+    return new DOMParser().parseFromString(text, "text/html");
 }
 
 async function getResponse(href: string): Promise<Response> {
@@ -96,12 +121,41 @@ async function waitFor(milliseconds: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-function setNextResultPage(currentDocument: Document): void {
-    if (oh.includes(TM)) { // TODO: use OOP
-        nrp = currentDocument.getElementsByClassName("prevnext")[0] as HTMLAnchorElement;
-    } else if (oh.includes(KJ)) {
-        nrp = currentDocument.getElementsByClassName("pagination-next")[0] as HTMLAnchorElement;
-    } else if (oh.includes(NH)) {
-        nrp = currentDocument.getElementsByClassName("next")[0] as HTMLAnchorElement;
+async function onImageLoadError(image: HTMLImageElement) {
+    // reload the image in 5 seconds
+    await waitFor(5000);
+    let imageSrc: string = image.src;
+    const timeIndex: number = imageSrc.indexOf("?time=");
+    const time: string = "?time=" + Date.now();
+    if (timeIndex !== -1) {
+        imageSrc = imageSrc.substring(0, timeIndex) + time;
+    } else {
+        imageSrc += time;
+    }
+    image.src = imageSrc;
+}
+
+async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
+    if (index < thumbnails.length) {
+        const thumbnail = thumbnails[index];
+        container.appendChild(thumbnail);
+        thumbnail.src = thumbnail.getAttribute("data-src");
+        thumbnail.onload = async () => {
+            await loadThumbnail(thumbnails, container, ++index);
+        }
+    } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) {
+        createLoadMoreButton(container);
+    }
+}
+
+function createLoadMoreButton(l1Container: HTMLDivElement): void {
+    // TODO: use the intersection API instead
+    const loadMoreButton: HTMLButtonElement = document.createElement("button");
+    loadMoreButton.className = "load-more";
+    loadMoreButton.innerText = "Load More";
+    l1Container.appendChild(loadMoreButton);
+    loadMoreButton.onclick = async () => {
+        loadMoreButton.remove();
+        await loadL1();
     }
 }
