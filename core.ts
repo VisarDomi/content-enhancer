@@ -7,34 +7,6 @@ const KISSJAV: string = "kissjav";
 const NHENTAI: string = "nhentai";
 const ASURASCANS: string = "asurascans";
 
-(async () => {
-    originalHref = location.href;
-    setNextSearchResultsHref(document);
-
-    // collect the thumbnails before the html element is removed
-    let searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(document);
-
-    // set up the html
-    const contentEnhancers: NodeListOf<HTMLScriptElement> = document.querySelectorAll(".content-enhancer") as NodeListOf<HTMLScriptElement>;
-    document.body.parentElement.remove(); // destroy everything
-    const html: HTMLHtmlElement = document.createElement("html");
-    const body: HTMLBodyElement = document.createElement("body");
-    const head: HTMLHeadElement = document.createElement("head");
-    for (const contentEnhancer of contentEnhancers) {
-        head.appendChild(contentEnhancer);
-    }
-    html.appendChild(head);
-    html.appendChild(body);
-    document.appendChild(html);
-
-    // level 1
-    const l1Container: HTMLDivElement = document.createElement("div");
-    l1Container.id = L1_CONTAINER_ID;
-    body.appendChild(l1Container);
-
-    await loadThumbnail(searchResultsThumbnails, l1Container);
-})();
-
 function setNextSearchResultsHref(currentDocument: Document): void {
     let anchor: HTMLAnchorElement = null;
     if (originalHref.includes(TOKYOMOTION)) { // TODO: use OOP
@@ -81,12 +53,22 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
             if (l1Thumbnail === undefined) {
                 continue; // don't do anything, it's an ad
             }
+            if (l1Thumbnail.getAttribute("data-src") !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute("data-src");
+            }
         } else if (originalHref.includes(NHENTAI)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
+            if (l1Thumbnail.getAttribute("data-src") !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute("data-src");
+            }
         } else if (originalHref.includes(ASURASCANS)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
+            // fix lazy-loading
+            if (l1Thumbnail.getAttribute("data-cfsrc") !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute("data-cfsrc");
+            }
         }
 
         pushThumbnail(l1Thumbnail, l2Href, "loadL2", searchResultsThumbnails);
@@ -96,11 +78,6 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
 }
 
 function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[]) {
-    // fix lazy-loading
-    if (levelThumbnail.getAttribute("data-src") !== null) {
-        levelThumbnail.src = levelThumbnail.getAttribute("data-src");
-    }
-
     // we got all the needed data
     const thumbnail: HTMLImageElement = new Image();
     thumbnail.setAttribute("data-href", levelHref.href);
@@ -151,19 +128,59 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
         thumbnail.onload = async () => {
             await loadThumbnail(thumbnails, container, ++index);
         }
-    } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) {
-        createLoadMoreButton(container);
+    } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
+        const options: {} = {
+            root: null,
+            rootMargin: (index * 100/2) + "%"
+        }
+        const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+            entries.forEach(async entry => {
+                if (entry.isIntersecting) {
+                    const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                    observer.unobserve(entryTarget);
+                    entryTarget.className = "unobserve";
+                    await loadL1();
+                }
+            })
+        }
+        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+        const target: HTMLImageElement = document.querySelector(".observe") as HTMLImageElement;
+        observer.observe(target);
     }
 }
 
-function createLoadMoreButton(l1Container: HTMLDivElement): void {
-    // TODO: use the intersection API instead
-    const loadMoreButton: HTMLButtonElement = document.createElement("button");
-    loadMoreButton.className = "load-more";
-    loadMoreButton.innerText = "Load More";
-    l1Container.appendChild(loadMoreButton);
-    loadMoreButton.onclick = async () => {
-        loadMoreButton.remove();
-        await loadL1();
-    }
+function observeLastElement(searchResultsThumbnails: HTMLImageElement[]): void {
+    // start loading the thumbnails
+    const lastThumbnail: HTMLImageElement = searchResultsThumbnails.pop();
+    lastThumbnail.className = "observe";
+    searchResultsThumbnails.push(lastThumbnail);
 }
+
+(async () => {
+    originalHref = location.href;
+    setNextSearchResultsHref(document);
+
+    // collect the thumbnails before the html element is removed
+    let searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(document);
+
+    // set up the html
+    const contentEnhancers: NodeListOf<HTMLScriptElement> = document.querySelectorAll(".content-enhancer") as NodeListOf<HTMLScriptElement>;
+    document.body.parentElement.remove(); // destroy everything
+    const html: HTMLHtmlElement = document.createElement("html");
+    const body: HTMLBodyElement = document.createElement("body");
+    const head: HTMLHeadElement = document.createElement("head");
+    for (const contentEnhancer of contentEnhancers) {
+        head.appendChild(contentEnhancer);
+    }
+    html.appendChild(head);
+    html.appendChild(body);
+    document.appendChild(html);
+
+    // level 1
+    const l1Container: HTMLDivElement = document.createElement("div");
+    l1Container.id = L1_CONTAINER_ID;
+    body.appendChild(l1Container);
+
+    observeLastElement(searchResultsThumbnails);
+    await loadThumbnail(searchResultsThumbnails, l1Container);
+})();

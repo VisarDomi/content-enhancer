@@ -129,8 +129,6 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
             if (newImages.length > 0) {
                 loadNextChapter.remove();
                 await loadAsImage(newImages, container);
-            } else {
-                loadNextChapter.innerText = "No more new chapters";
             }
         }
     }

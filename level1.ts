@@ -7,8 +7,7 @@ async function loadL1(): Promise<void> {
         const searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(searchResultsDocument);
         // set the next href
         setNextSearchResultsHref(searchResultsDocument);
-
-        // start loading the thumbnails
+        observeLastElement(searchResultsThumbnails);
         await loadThumbnail(searchResultsThumbnails, l1Container);
     }
 }
