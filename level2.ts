@@ -1,5 +1,10 @@
 let level1ScrollPosition: number;
 
+const DATA_LOAD_STATUS = "data-load-status";
+const LOADED = "loaded";
+const LOADING = "loading";
+const BUTTON = "button";
+
 async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
     // TODO: use OOP
     if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) {
@@ -10,7 +15,7 @@ async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
 }
 
 function goToL1(l2ContainerId: string): void {
-    document.getElementById(L1_CONTAINER_ID).style.display = "block"; // show level 1
+    document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
     document.getElementById(l2ContainerId).remove(); // destroy level 2
 
     // scroll to the first level position
@@ -18,42 +23,42 @@ function goToL1(l2ContainerId: string): void {
 }
 
 async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
+    const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
     const l2ContainerId: string = "l2" + l2Href;
     const backgroundId = "bg" + l2Href;
-    const videoLoaded: boolean = (searchResultsThumbnail.getAttribute("data-load-status") === "loaded");
-    const videoLoading: boolean = (searchResultsThumbnail.getAttribute("data-load-status") === "loading");
+    const videoLoaded: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADED);
+    const videoLoading: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADING);
     if (videoLoaded) {
         // save the position
         level1ScrollPosition = window.scrollY;
         window.scrollTo({top: 0});
 
         // remove the load status
-        searchResultsThumbnail.removeAttribute("data-load-status");
+        searchResultsThumbnail.removeAttribute(DATA_LOAD_STATUS);
         // remove the encompassing div
         const background: HTMLDivElement = document.getElementById(backgroundId) as HTMLDivElement;
         background.after(searchResultsThumbnail);
         background.remove();
 
         // hide the thumbnails and show the video container
-        document.getElementById(L1_CONTAINER_ID).style.display = "none"; // hide level 1
-        document.getElementById(l2ContainerId).style.display = "block"; // show level 2
+        document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
+        document.getElementById(l2ContainerId).style.display = BLOCK; // show level 2
     } else if (videoLoading) {
         // alert("wait for the video to load");
     } else {
         // after the first click, the video's load status is loading
-        const background: HTMLDivElement = document.createElement("div");
-        searchResultsThumbnail.setAttribute("data-load-status", "loading");
+        const background: HTMLDivElement = document.createElement(DIV);
+        searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADING);
         background.id = backgroundId;
-        background.className = "loading";
+        background.className = LOADING;
         searchResultsThumbnail.after(background);
         searchResultsThumbnail.className = "clicked";
         background.appendChild(searchResultsThumbnail);
 
         // create level 2
-        const l2Container: HTMLDivElement = document.createElement("div");
+        const l2Container: HTMLDivElement = document.createElement(DIV);
         l2Container.id = l2ContainerId;
-        l2Container.style.display = "none";
+        l2Container.style.display = NONE;
         document.body.appendChild(l2Container);
 
         // the video
@@ -70,8 +75,8 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
             await waitFor(100);
             l2Video.pause();
             // the video is loaded
-            searchResultsThumbnail.setAttribute("data-load-status", "loaded");
-            background.className = "loaded";
+            searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADED);
+            background.className = LOADED;
         }
         l2Video.onerror = async () => {
             await waitFor(5000);
@@ -106,16 +111,16 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
         l2Container.appendChild(l2Video);
 
         // the go back button
-        const goToL1: HTMLDivElement = document.createElement("div");
+        const goToL1: HTMLDivElement = document.createElement(DIV);
         // the red "go-back" div attributes
         goToL1.className = "go-video-l1";
-        goToL1.setAttribute("onclick", 'goToL1("' + l2ContainerId + '")');
+        goToL1.setAttribute(ONCLICK, 'goToL1("' + l2ContainerId + '")');
         l2Container.appendChild(goToL1);
 
         // refresh should be at the end of the page
-        const refresh: HTMLButtonElement = document.createElement("button");
+        const refresh: HTMLButtonElement = document.createElement(BUTTON);
         refresh.className = "refresh";
-        refresh.type = "button";
+        refresh.type = BUTTON;
         refresh.onclick = () => {
             video.scrollIntoView();
             l2Video.load();
@@ -127,9 +132,9 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
 
 function createGoToL1(l2Container: HTMLDivElement, functionName: string): void {
     // the back button
-    const goToL1: HTMLDivElement = document.createElement("div");
-    goToL1.className = "go-back";
-    goToL1.setAttribute("onclick", functionName + "('" + l2Container.id + "')");
+    const goToL1: HTMLDivElement = document.createElement(DIV);
+    goToL1.className = GO_BACK;
+    goToL1.setAttribute(ONCLICK, functionName + "('" + l2Container.id + "')");
     l2Container.appendChild(goToL1);
 }
 
@@ -139,12 +144,12 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
     window.scrollTo({top: 0});
 
     // create level 2
-    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
+    const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
     const l2ContainerId: string = "l2" + l2Href;
-    const l2Container: HTMLDivElement = document.createElement("div");
+    const l2Container: HTMLDivElement = document.createElement(DIV);
     l2Container.id = l2ContainerId;
     document.body.appendChild(l2Container);
-    document.getElementById(L1_CONTAINER_ID).style.display = "none"; // hide level 1
+    document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
     createGoToL1(l2Container, "goToL1");
 
     // get the gallery thumbnails
@@ -156,7 +161,7 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
 
         // add the l2Container id as well
         for (const galleryThumbnail of galleryThumbnails) {
-            galleryThumbnail.setAttribute("data-l2-id", l2ContainerId);
+            galleryThumbnail.setAttribute(DATA_L2_ID, l2ContainerId);
         }
 
         // load the gallery thumbnails
@@ -167,12 +172,12 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
 
         for (const chapter of chapters) {
             const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
-            const chapterButton: HTMLButtonElement = document.createElement("button");
+            const chapterButton: HTMLButtonElement = document.createElement(BUTTON);
             const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
             chapterButton.innerText = span.innerText;
             chapterButton.className = "chapter-button";
-            chapterButton.setAttribute("data-href", anchor.href);
-            chapterButton.setAttribute("data-l2-id", l2ContainerId);
+            chapterButton.setAttribute(DATA_HREF, anchor.href);
+            chapterButton.setAttribute(DATA_L2_ID, l2ContainerId);
             chapterButton.onclick = async () => {
                 await loadL3(chapterButton);
             }

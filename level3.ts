@@ -3,45 +3,47 @@ let nextImageHref: string;
 let breakLoop: boolean; // don't send any more requests if you go back to level 2
 
 async function loadL3(element: HTMLElement): Promise<void> {
+    // don't request more images if we go back to level 2
+    breakLoop = false;
+
     // scroll to the top - order matters
     level2ScrollPosition = window.scrollY;
     window.scrollTo({top: 0});
 
     // create level 3
-    const l2ContainerId: string = element.getAttribute("data-l2-id");
+    const l2ContainerId: string = element.getAttribute(DATA_L2_ID);
     const l2Container: HTMLDivElement = document.getElementById(l2ContainerId) as HTMLDivElement;
-    const l3Href: string = element.getAttribute("data-href");
+    const l3Href: string = element.getAttribute(DATA_HREF);
     const l3ContainerId: string = "l3" + l3Href;
-    const l3Container: HTMLDivElement = document.createElement("div");
+    const l3Container: HTMLDivElement = document.createElement(DIV);
     l3Container.id = l3ContainerId;
     document.body.appendChild(l3Container);
-    l2Container.style.display = "none"; // hide level 2
+    l2Container.style.display = NONE; // hide level 2
     createGoToL2(l2Container, l3Container, "goToL2");
 
     // now it's time to load the images TODO: use OOP
     if (originalHref.includes(NHENTAI)) {
         nextImageHref = l3Href;
-        breakLoop = false;
         await loadNhImage(l3Container);
     } else if (originalHref.includes(ASURASCANS)) {
         const images: HTMLImageElement[] = await getAsImages(l3Href);
-        breakLoop = false;
+        observeLastImage(images, IMAGE);
         await loadAsImage(images, l3Container);
     }
 }
 
 function createGoToL2(l2Container: HTMLDivElement, l3Container: HTMLDivElement, functionName: string): void {
     // the back button
-    const goToL2: HTMLDivElement = document.createElement("div");
-    goToL2.className = "go-back";
-    goToL2.setAttribute("onclick", functionName + "('" + l2Container.id + "', '" + l3Container.id + "')");
+    const goToL2: HTMLDivElement = document.createElement(DIV);
+    goToL2.className = GO_BACK;
+    goToL2.setAttribute(ONCLICK, functionName + "('" + l2Container.id + "', '" + l3Container.id + "')");
     l3Container.appendChild(goToL2);
 }
 
 function goToL2(l2ContainerId: string, l3ContainerId: string): void {
     let show: string;
     if (originalHref.includes(NHENTAI)) { // TODO: use OOP
-        show = "block";
+        show = BLOCK;
     } else if (originalHref.includes(ASURASCANS)) {
         show = "flex";
     }
@@ -50,13 +52,15 @@ function goToL2(l2ContainerId: string, l3ContainerId: string): void {
 
     // break loop - stop requesting new images TODO: use OOP
     breakLoop = true;
+    // set doNotRetry to false again
+    doNotRetry = false;
 
     // scroll to level 2 scroll position
     window.scrollTo({top: level2ScrollPosition});
 }
 
 async function loadNhImage(l3Container: HTMLDivElement): Promise<void> {
-    if (nextImageHref !== "" && !breakLoop) {
+    if (nextImageHref !== EMPTY_STRING && !breakLoop) {
         // get the next image
         const imageDocument: Document = await getResponseDocument(nextImageHref);
 
@@ -68,7 +72,7 @@ async function loadNhImage(l3Container: HTMLDivElement): Promise<void> {
 
         // set the next image to be loaded TODO: use OOP
         const nextImage = imageDocument.querySelector(".next") as HTMLAnchorElement;
-        nextImageHref = nextImage === null ? "" : nextImage.href;
+        nextImageHref = nextImage === null ? EMPTY_STRING : nextImage.href;
 
         // load the next image
         l3Image.onload = async () => {
@@ -77,29 +81,31 @@ async function loadNhImage(l3Container: HTMLDivElement): Promise<void> {
         l3Image.onerror = async () => {
             await onImageLoadError(l3Image);
         }
-    } else {
-        // a load more button for asurascans
     }
 }
 
 async function getAsImages(href: string): Promise<HTMLImageElement[]> {
-    const chapter: Document = await getResponseDocument(href);
     const images: HTMLImageElement[] = [];
-    const viewports: number[] = [];
-    const readerAreaChildren: HTMLCollectionOf<Element> = chapter.getElementById("readerarea").children;
-    for (let i: number = 0; i < readerAreaChildren.length; i++) {
-        // find all the indexes of the children that have the class ai-viewport-2
-        if (readerAreaChildren[i].getAttribute("class")?.includes("ai-viewport-2")) {
-            viewports.push(i);
+    const chapter: Document = await getResponseDocument(href);
+    if (chapter !== null) {
+        const viewports: number[] = [];
+        const readerAreaChildren: HTMLCollectionOf<Element> = chapter.getElementById("readerarea").children;
+        for (let i: number = 0; i < readerAreaChildren.length; i++) {
+            // find all the indexes of the children that have the class ai-viewport-2
+            if (readerAreaChildren[i].getAttribute(CLASS)?.includes("ai-viewport-2")) {
+                viewports.push(i);
+            }
         }
-    }
-    viewports.pop(); // remove the last image (it's the credits image)
-    for (const viewport of viewports) {
-        // the index of the p tags are always 2 more than the index of the viewports
-        // the p tag contains only the image
-        const image: HTMLImageElement = readerAreaChildren[viewport + 2].children[0] as HTMLImageElement;
-        image.setAttribute("data-href", href);
-        images.push(image)
+        viewports.pop(); // remove the last image (it's the credits image)
+        for (const viewport of viewports) {
+            // the index of the p tags are always 2 more than the index of the viewports
+            // the p tag contains only the image
+            const image: HTMLImageElement = readerAreaChildren[viewport + 2].children[0] as HTMLImageElement;
+            const newImage: HTMLImageElement = new Image();
+            newImage.setAttribute(DATA_HREF, href);
+            newImage.setAttribute(DATA_SRC, image.getAttribute(DATA_CFSRC))
+            images.push(newImage)
+        }
     }
     return images;
 }
@@ -107,50 +113,56 @@ async function getAsImages(href: string): Promise<HTMLImageElement[]> {
 async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
     if (index < images.length && !breakLoop) {
         const image: HTMLImageElement = images[index];
-        const newImage: HTMLImageElement = new Image();
-        newImage.setAttribute("style", "height:auto;width:100%");
-        let imageSrc: string = image.getAttribute("src");
-        if (imageSrc === null) {
-            imageSrc = image.getAttribute("data-cfsrc");
-        }
-        newImage.src = imageSrc;
-        newImage.onload = async () => {
+        container.append(image);
+        image.src = image.getAttribute(DATA_SRC);
+        image.onload = async () => {
             await loadAsImage(images, container, ++index);
         }
-        container.append(newImage);
     } else if (index === images.length) {
-        const loadNextChapter: HTMLButtonElement = document.createElement("button");
-        loadNextChapter.className = "load-next-chapter";
-        loadNextChapter.innerText = "Load Next Chapter";
-        container.appendChild(loadNextChapter);
-        loadNextChapter.onclick = async () => {
-            const nextChapterHref: string = getNextChapterHref(images);
-            const newImages: HTMLImageElement[] = await getAsImages(nextChapterHref);
-            if (newImages.length > 0) {
-                loadNextChapter.remove();
-                await loadAsImage(newImages, container);
-            }
+        const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+            entries.forEach(async entry => {
+                if (entry.isIntersecting) {
+                    const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                    observer.unobserve(entryTarget);
+                    entryTarget.removeAttribute(CLASS);
+                    const nextChapterHref: string = getNextChapterHref(images);
+                    doNotRetry = true;
+                    const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref);
+                    if (nextChapterImages.length > 0) {
+                        observeLastImage(nextChapterImages, IMAGE);
+                        await loadAsImage(nextChapterImages, container);
+                    }
+                }
+            })
         }
+        const options: {} = {
+            root: null,
+            rootMargin: (index * 100/2) + "%" // load when half is reached
+        }
+        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+        const target: HTMLImageElement = document.querySelector("." + IMAGE) as HTMLImageElement;
+        observer.observe(target);
     }
 }
 
 function getNextChapterHref(images: HTMLImageElement[]): string {
-    const href: string = images[0].getAttribute("data-href");
-    const parts: string[] = href.split("-");
+    const href: string = images[0].getAttribute(DATA_HREF);
+    const SEPARATOR = "-";
+    const parts: string[] = href.split(SEPARATOR);
     const CHAPTER: string = "chapter";
     const indexOfChapter: number = parts.indexOf(CHAPTER);
     const end: string = parts[indexOfChapter + 1];
     const chapterNumber: string = end.substring(0, end.length - 1);
     let nextChapterNumber: number;
-    if (end.includes(".5")) { // we are on a half chapter, skip this and get the next one
+    if (end.includes(".")) { // we are on a half chapter, skip this and get the next one
         nextChapterNumber = parseInt(chapterNumber.split(".")[0]) + 1;
     } else {
         nextChapterNumber = parseInt(chapterNumber) + 1;
     }
-    let nextChapterHref: string = "";
+    let nextChapterHref: string = EMPTY_STRING;
     for (let i: number = 0; i < indexOfChapter; i++) {
-        nextChapterHref += parts[i] + "-";
+        nextChapterHref += parts[i] + SEPARATOR;
     }
-    nextChapterHref += CHAPTER + "-" + nextChapterNumber + "/";
+    nextChapterHref += CHAPTER + SEPARATOR + nextChapterNumber + "/";
     return nextChapterHref;
 }

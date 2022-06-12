@@ -1,6 +1,21 @@
 let nextSearchResultsHref: string;
 let originalHref: string;
 const L1_CONTAINER_ID: string = "l1-container";
+const THUMBNAIL = "observeThumbnail";
+const IMAGE = "observeImage";
+const DATA_SRC = "data-src";
+const DATA_CFSRC = "data-cfsrc";
+const DATA_HREF = "data-href";
+const EMPTY_STRING = "";
+const ONCLICK = "onclick";
+const CLASS = "class";
+const DIV = "div";
+const BLOCK = "block";
+const NONE = "none";
+const GO_BACK = "go-back";
+const DATA_L2_ID = "data-l2-id";
+
+let doNotRetry = false;
 
 const TOKYOMOTION: string = "tokyomotion";
 const KISSJAV: string = "kissjav";
@@ -18,7 +33,7 @@ function setNextSearchResultsHref(currentDocument: Document): void {
     } else if (originalHref.includes(ASURASCANS)) {
         anchor = currentDocument.querySelector(".r") as HTMLAnchorElement;
     }
-    nextSearchResultsHref = anchor === null ? "" : anchor.href;
+    nextSearchResultsHref = anchor === null ? EMPTY_STRING : anchor.href;
 }
 
 function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElement[] {
@@ -53,21 +68,21 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
             if (l1Thumbnail === undefined) {
                 continue; // don't do anything, it's an ad
             }
-            if (l1Thumbnail.getAttribute("data-src") !== null) {
-                l1Thumbnail.src = l1Thumbnail.getAttribute("data-src");
+            if (l1Thumbnail.getAttribute(DATA_SRC) !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute(DATA_SRC);
             }
         } else if (originalHref.includes(NHENTAI)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
-            if (l1Thumbnail.getAttribute("data-src") !== null) {
-                l1Thumbnail.src = l1Thumbnail.getAttribute("data-src");
+            if (l1Thumbnail.getAttribute(DATA_SRC) !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute(DATA_SRC);
             }
         } else if (originalHref.includes(ASURASCANS)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
             // fix lazy-loading
-            if (l1Thumbnail.getAttribute("data-cfsrc") !== null) {
-                l1Thumbnail.src = l1Thumbnail.getAttribute("data-cfsrc");
+            if (l1Thumbnail.getAttribute(DATA_CFSRC) !== null) {
+                l1Thumbnail.src = l1Thumbnail.getAttribute(DATA_CFSRC);
             }
         }
 
@@ -80,22 +95,28 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
 function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[]) {
     // we got all the needed data
     const thumbnail: HTMLImageElement = new Image();
-    thumbnail.setAttribute("data-href", levelHref.href);
-    thumbnail.setAttribute("onclick", functionName + "(this)"); // we do it this way to split the code into several files
-    thumbnail.setAttribute("data-src", levelThumbnail.src);
+    thumbnail.setAttribute(DATA_HREF, levelHref.href);
+    thumbnail.setAttribute(ONCLICK, functionName + "(this)"); // we do it this way to split the code into several files
+    thumbnail.setAttribute(DATA_SRC, levelThumbnail.src);
     thumbnails.push(thumbnail);
 }
 
 async function getResponseDocument(href: string): Promise<Document> {
     const response: Response = await getResponse(href);
-    const text: string = await response.text();
-    return new DOMParser().parseFromString(text, "text/html");
+    if (response !== null) {
+        const text: string = await response.text();
+        return new DOMParser().parseFromString(text, "text/html");
+    } else {
+        return null;
+    }
 }
 
 async function getResponse(href: string): Promise<Response> {
     const response: Response = await fetch(href);
     if (response.status === 200) { // the base case, the response was successful
         return response;
+    } else if (doNotRetry) {
+        return null; // do not retry
     } else { // wait 5 seconds before retrying
         await waitFor(5000);
         return await getResponse(href);
@@ -110,8 +131,9 @@ async function onImageLoadError(image: HTMLImageElement) {
     // reload the image in 5 seconds
     await waitFor(5000);
     let imageSrc: string = image.src;
-    const timeIndex: number = imageSrc.indexOf("?time=");
-    const time: string = "?time=" + Date.now();
+    const TIME = "?time=";
+    const timeIndex: number = imageSrc.indexOf(TIME);
+    const time: string = TIME + Date.now();
     if (timeIndex !== -1) {
         imageSrc = imageSrc.substring(0, timeIndex) + time;
     } else {
@@ -124,36 +146,36 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
     if (index < thumbnails.length) {
         const thumbnail = thumbnails[index];
         container.appendChild(thumbnail);
-        thumbnail.src = thumbnail.getAttribute("data-src");
+        thumbnail.src = thumbnail.getAttribute(DATA_SRC);
         thumbnail.onload = async () => {
             await loadThumbnail(thumbnails, container, ++index);
         }
     } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
-        const options: {} = {
-            root: null,
-            rootMargin: (index * 100/2) + "%"
-        }
         const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
             entries.forEach(async entry => {
                 if (entry.isIntersecting) {
                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
                     observer.unobserve(entryTarget);
-                    entryTarget.className = "unobserve";
+                    entryTarget.removeAttribute(CLASS);
                     await loadL1();
                 }
             })
         }
+        const options: {} = {
+            root: null,
+            rootMargin: (index * 100/2) + "%" // load when half is reached
+        }
         const observer: IntersectionObserver = new IntersectionObserver(callback, options);
-        const target: HTMLImageElement = document.querySelector(".observe") as HTMLImageElement;
+        const target: HTMLImageElement = document.querySelector("." + THUMBNAIL) as HTMLImageElement;
         observer.observe(target);
     }
 }
 
-function observeLastElement(searchResultsThumbnails: HTMLImageElement[]): void {
+function observeLastImage(images: HTMLImageElement[], className: string): void {
     // start loading the thumbnails
-    const lastThumbnail: HTMLImageElement = searchResultsThumbnails.pop();
-    lastThumbnail.className = "observe";
-    searchResultsThumbnails.push(lastThumbnail);
+    const image: HTMLImageElement = images.pop();
+    image.className = className;
+    images.push(image);
 }
 
 (async () => {
@@ -177,10 +199,10 @@ function observeLastElement(searchResultsThumbnails: HTMLImageElement[]): void {
     document.appendChild(html);
 
     // level 1
-    const l1Container: HTMLDivElement = document.createElement("div");
+    const l1Container: HTMLDivElement = document.createElement(DIV);
     l1Container.id = L1_CONTAINER_ID;
     body.appendChild(l1Container);
 
-    observeLastElement(searchResultsThumbnails);
+    observeLastImage(searchResultsThumbnails, THUMBNAIL);
     await loadThumbnail(searchResultsThumbnails, l1Container);
 })();

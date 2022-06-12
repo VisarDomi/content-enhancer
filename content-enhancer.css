@@ -49,7 +49,7 @@ button {
     text-align: center;
 }
 
-.load-more, .refresh, .load-next-chapter {
+.refresh {
     margin-top: 200px;
     margin-bottom: 200px;
 }
