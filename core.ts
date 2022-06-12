@@ -32,7 +32,7 @@ const ASURASCANS: string = "asurascans";
     l1Container.id = L1_CONTAINER_ID;
     body.appendChild(l1Container);
 
-    await loadThumbnail(searchResultsThumbnails, l1Container, 0);
+    await loadThumbnail(searchResultsThumbnails, l1Container);
 })();
 
 function setNextSearchResultsHref(currentDocument: Document): void {
@@ -43,6 +43,8 @@ function setNextSearchResultsHref(currentDocument: Document): void {
         anchor = currentDocument.querySelector(".pagination-next") as HTMLAnchorElement;
     } else if (originalHref.includes(NHENTAI)) {
         anchor = currentDocument.querySelector(".next") as HTMLAnchorElement;
+    } else if (originalHref.includes(ASURASCANS)) {
+        anchor = currentDocument.querySelector(".r") as HTMLAnchorElement;
     }
     nextSearchResultsHref = anchor === null ? "" : anchor.href;
 }
@@ -61,6 +63,9 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
     } else if (originalHref.includes(NHENTAI)) {
         const selectedElements: HTMLCollectionOf<HTMLDivElement> = responseDocument.querySelector(".index-container").children as HTMLCollectionOf<HTMLDivElement>;
         thumbnailList.splice(0, 0, ...Array.from(selectedElements));
+    } else if (originalHref.includes(ASURASCANS)) {
+        const selectedElements: NodeListOf<HTMLAnchorElement> = responseDocument.querySelectorAll(".imgu") as NodeListOf<HTMLAnchorElement>;
+        thumbnailList.splice(0, 0, ...Array.from(selectedElements));
     }
     for (const thumbnail of thumbnailList) {
         let l2Href: HTMLAnchorElement;
@@ -77,6 +82,9 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
                 continue; // don't do anything, it's an ad
             }
         } else if (originalHref.includes(NHENTAI)) {
+            l2Href = thumbnail.children[0] as HTMLAnchorElement;
+            l1Thumbnail = l2Href.children[0] as HTMLImageElement;
+        } else if (originalHref.includes(ASURASCANS)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
         }

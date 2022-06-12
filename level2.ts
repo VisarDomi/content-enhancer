@@ -4,15 +4,13 @@ async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
     // TODO: use OOP
     if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) {
         await loadVideo(searchResultsThumbnail);
-    } else if (originalHref.includes(NHENTAI)) {
-        await loadGalleryThumbnails(searchResultsThumbnail);
-    } else if (originalHref.includes(ASURASCANS)) {
-        await loadChapters(searchResultsThumbnail);
+    } else if (originalHref.includes(NHENTAI) || originalHref.includes(ASURASCANS)) {
+        await loadManga(searchResultsThumbnail);
     }
 }
 
 function goToL1(l2ContainerId: string): void {
-    document.getElementById(L1_CONTAINER_ID).className = "show"; // show level 1
+    document.getElementById(L1_CONTAINER_ID).style.display = "block"; // show level 1
     document.getElementById(l2ContainerId).remove(); // destroy level 2
 
     // scroll to the first level position
@@ -38,8 +36,8 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
         background.remove();
 
         // hide the thumbnails and show the video container
-        document.getElementById(L1_CONTAINER_ID).className = "hide"; // hide level 1
-        document.getElementById(l2ContainerId).className = "show"; // show level 2
+        document.getElementById(L1_CONTAINER_ID).style.display = "none"; // hide level 1
+        document.getElementById(l2ContainerId).style.display = "block"; // show level 2
     } else if (videoLoading) {
         // alert("wait for the video to load");
     } else {
@@ -55,7 +53,7 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
         // create level 2
         const l2Container: HTMLDivElement = document.createElement("div");
         l2Container.id = l2ContainerId;
-        l2Container.className = "hide";
+        l2Container.style.display = "none";
         document.body.appendChild(l2Container);
 
         // the video
@@ -135,7 +133,7 @@ function createGoToL1(l2Container: HTMLDivElement, functionName: string): void {
     l2Container.appendChild(goToL1);
 }
 
-async function loadGalleryThumbnails(searchResultsThumbnail): Promise<void> {
+async function loadManga(searchResultsThumbnail): Promise<void> {
     // scroll to the top - order matters
     level1ScrollPosition = window.scrollY;
     window.scrollTo({top: 0});
@@ -146,20 +144,41 @@ async function loadGalleryThumbnails(searchResultsThumbnail): Promise<void> {
     const l2Container: HTMLDivElement = document.createElement("div");
     l2Container.id = l2ContainerId;
     document.body.appendChild(l2Container);
-    document.getElementById(L1_CONTAINER_ID).className = "hide"; // hide level 1
+    document.getElementById(L1_CONTAINER_ID).style.display = "none"; // hide level 1
     createGoToL1(l2Container, "goToL1");
 
     // get the gallery thumbnails
-    const galleryDocument: Document = await getResponseDocument(l2Href);
-    const galleryThumbnails = getGalleryThumbnails(galleryDocument);
+    const mangaDocument: Document = await getResponseDocument(l2Href);
 
-    // add the l2Container id as well
-    for (const galleryThumbnail of galleryThumbnails) {
-        galleryThumbnail.setAttribute("data-l2-id", l2ContainerId);
+
+    if (originalHref.includes(NHENTAI)) {
+        const galleryThumbnails = getGalleryThumbnails(mangaDocument);
+
+        // add the l2Container id as well
+        for (const galleryThumbnail of galleryThumbnails) {
+            galleryThumbnail.setAttribute("data-l2-id", l2ContainerId);
+        }
+
+        // load the gallery thumbnails
+        await loadThumbnail(galleryThumbnails, l2Container);
+    } else if (originalHref.includes(ASURASCANS)) {
+        l2Container.setAttribute("style", "display:flex;flex-direction:column;");
+        const chapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(".eph-num") as NodeListOf<HTMLDivElement>;
+
+        for (const chapter of chapters) {
+            const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
+            const chapterButton: HTMLButtonElement = document.createElement("button");
+            const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
+            chapterButton.innerText = span.innerText;
+            chapterButton.className = "chapter-button";
+            chapterButton.setAttribute("data-href", anchor.href);
+            chapterButton.setAttribute("data-l2-id", l2ContainerId);
+            chapterButton.onclick = async () => {
+                await loadL3(chapterButton);
+            }
+            l2Container.appendChild(chapterButton);
+        }
     }
-
-    // load the gallery thumbnails
-    await loadThumbnail(galleryThumbnails, l2Container);
 }
 
 function getGalleryThumbnails(galleryDocument: Document) {
@@ -178,10 +197,3 @@ function getGalleryThumbnails(galleryDocument: Document) {
 
     return galleryThumbnails;
 }
-
-async function loadChapters(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    const l2Href: string = searchResultsThumbnail.getAttribute("data-href");
-    const l2ContainerId: string = "l2" + l2Href;
-    // asurascans goes in here
-}
-
