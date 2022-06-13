@@ -39,6 +39,10 @@ function goToL2(backButton: HTMLDivElement): void {
     breakLoop = true;
     retry = true;
 
+    // update level 2 chapter information
+    const lastRead: HTMLSpanElement = document.getElementById(currentChapterHref) as HTMLSpanElement;
+    lastRead.innerText = getTimeAgo(Date.now() + "");
+
     // scroll to level 2 scroll position
     window.scrollTo({top: level2ScrollPosition});
 }
@@ -132,12 +136,14 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
         nextChapterObserver.observe(target);
 
         // set the info of the current image
-        const setInfo = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+        const setInfo = (entries: IntersectionObserverEntry[]) => {
             entries.forEach(async entry => {
                 if (entry.isIntersecting) {
                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
                     const infoContent: HTMLSpanElement = document.querySelector(".info-content") as HTMLSpanElement;
-                    infoContent.innerHTML = entryTarget.getAttribute(DATA_HREF);
+                    currentChapterHref = entryTarget.getAttribute(DATA_HREF);
+                    infoContent.innerText = currentChapterHref;
+                    localStorage.setItem(currentChapterHref, Date.now() + "");
                 }
             })
         }

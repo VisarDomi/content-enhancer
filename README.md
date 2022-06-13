@@ -49,7 +49,9 @@ Pagination - to be designed
 - There is also an info button for nh manga, on the bottom left (50vw, 50vh)
 
 ## TODO:
-- use localstorage to mark clicked videos and chapters
-- show 5 chapters on the manga thumbnails, and go directly to level 3 if clicked
+- use localstorage to mark clicked videos and chapters:
+  * for videos, when on level 2, save a key value pair -> videoHref: lastTimeWatched
+  * for videos, when on level 1, show lastTimeWatched
+  * for chapters, when on level 1, show the latest chapter available, and the last read chapter
 - change the final merge to use OOP
 - add ytboob, e-hentai, and 1stkissmanga to the list -> how easy is it to implement using OOP?

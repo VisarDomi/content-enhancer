@@ -145,15 +145,37 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
         const chapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(".eph-num") as NodeListOf<HTMLDivElement>;
         for (const chapter of chapters) {
             const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
+            currentChapterHref = anchor.href;
+
+            // add the chapter button
+            const chapterContainer: HTMLDivElement = document.createElement("div");
+            chapterContainer.className = "chapter-container";
             const chapterButton: HTMLButtonElement = document.createElement("button");
             const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
             chapterButton.innerText = span.innerText;
             chapterButton.className = "chapter-button";
-            chapterButton.setAttribute(DATA_HREF, anchor.href);
+            chapterButton.setAttribute(DATA_HREF, currentChapterHref);
             chapterButton.onclick = async () => {
                 await loadL3(chapterButton);
             }
-            l2Container.appendChild(chapterButton);
+            chapterContainer.appendChild(chapterButton);
+
+            // add the last read information next to the button
+            const lastReadContainer: HTMLDivElement = document.createElement("div");
+            lastReadContainer.className = "last-read-container";
+            const lastRead: HTMLSpanElement = document.createElement("span");
+            lastRead.className = "last-read";
+            lastRead.id = currentChapterHref;
+            const lastReadString: string = localStorage.getItem(currentChapterHref);
+            if (lastReadString === null) {
+                lastRead.innerText = "Never read";
+            } else {
+                lastRead.innerText = getTimeAgo(lastReadString);
+            }
+
+            lastReadContainer.appendChild(lastRead);
+            chapterContainer.appendChild(lastReadContainer);
+            l2Container.appendChild(chapterContainer);
         }
     }
 }

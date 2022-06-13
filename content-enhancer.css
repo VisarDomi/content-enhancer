@@ -54,9 +54,26 @@ video {
 }
 
 .refresh, .chapter-button {
-    font-size: 2rem;
+    font-size: 1.2rem;
     line-height: 3;
     text-align: center;
+    width: 100%;
+}
+
+.chapter-container {
+    display: flex;
+    font-size: 1.2rem;
+    font-family: sans-serif;
+    color: white;
+    align-items: center;
+}
+
+.last-read-container {
+    width: 100%;
+}
+
+.last-read {
+    margin-left: 10px;
 }
 
 .l2-thumbnail {

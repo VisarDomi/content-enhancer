@@ -5,6 +5,7 @@ const LOOK_AHEAD = "1000%"; // look ahead 10 screens
 let retry: boolean = true; // do we retry a request every 5 seconds?
 let nextSearchResultsHref: string;
 let originalHref: string;
+let currentChapterHref: string;
 
 // string names
 const L1_CONTAINER_ID: string = "l1-container";
@@ -161,8 +162,12 @@ async function onImageLoadError(image: HTMLImageElement): Promise<void> {
 
 async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
     if (index < thumbnails.length) {
-        // duration
         const thumbnail = thumbnails[index];
+
+        // TODO: get latest chapter available
+        // TODO: get last read chapter
+
+        // duration
         const durationText: string = thumbnail.getAttribute(DATA_DURATION);
         if (durationText !== null) {
             const duration: HTMLDivElement = document.createElement("div");
@@ -218,6 +223,32 @@ function createBackButton(container: HTMLDivElement, functionName: string, class
     backButton.className = className;
     backButton.setAttribute(ONCLICK, functionName + "(this)");
     container.appendChild(backButton);
+}
+
+function getTimeAgo(unixTime: string): string {
+    const now: number = Date.now();
+    const before: number = parseInt(unixTime);
+    let difference: number = (now - before) / 1000;
+    let timeAgo: string = Math.floor(difference) + " seconds ago";
+    timeAgo = getTime(timeAgo, difference, 60, " minute ago", " minutes ago");
+    timeAgo = getTime(timeAgo, difference, 60 * 60, " hour ago", " hours ago");
+    timeAgo = getTime(timeAgo, difference, 60 * 60 * 24, " day ago", " days ago");
+    timeAgo = getTime(timeAgo, difference, 60 * 60 * 24 * 7, " week ago", " weeks ago");
+    timeAgo = getTime(timeAgo, difference, 60 * 60 * 24 * 7 * 4, " month ago", " months ago");
+    timeAgo = getTime(timeAgo, difference, 60 * 60 * 24 * 7 * 4 * 12, " year ago", " years ago");
+    return timeAgo;
+}
+
+function getTime(timeAgo: string, difference: number, factor: number, singular: string, plural: string): string {
+    if (difference > factor) {
+        const time: number = Math.floor(difference / factor);
+        if (time === 1) {
+            timeAgo = time + singular;
+        } else {
+            timeAgo = Math.floor(difference / factor) + plural;
+        }
+    }
+    return timeAgo;
 }
 
 (async () => {
