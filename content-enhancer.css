@@ -26,6 +26,15 @@ video {
     opacity: 0.5;
 }
 
+.duration {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.7);
+    font-family: sans-serif;
+    color: white;
+    z-index: 1;
+    padding: 5px;
+}
+
 /* level 2 */
 .go-back-video {
     width: 100%;

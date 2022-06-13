@@ -15,6 +15,7 @@ const IMAGE = "observeImage";
 const DATA_SRC = "data-src";
 const DATA_CFSRC = "data-cfsrc";
 const DATA_HREF = "data-href";
+const DATA_DURATION = "data-duration";
 const EMPTY_STRING = "";
 const ONCLICK = "onclick";
 const CLASS = "class";
@@ -64,9 +65,13 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
 
         if (originalHref.includes(TOKYOMOTION)) {
             l2Href = thumbnail as HTMLAnchorElement;
-            l1Thumbnail = l2Href.children[0].children[0] as HTMLImageElement;
+            const thumbOverlayChildren: HTMLCollectionOf<HTMLElement> = l2Href.children[0].children as HTMLCollectionOf<HTMLElement>;
+            l1Thumbnail = thumbOverlayChildren[0] as HTMLImageElement;
+            const duration: HTMLDivElement = thumbOverlayChildren[thumbOverlayChildren.length - 1] as HTMLImageElement;
+            l1Thumbnail.setAttribute(DATA_DURATION, duration.innerText.trim());
         } else if (originalHref.includes(KISSJAV)) {
-            l2Href = thumbnail.children[0].children[0].children[0].children[0] as HTMLAnchorElement;
+            const cardImageChildren: HTMLCollectionOf<HTMLElement> = thumbnail.children[0].children[0].children as HTMLCollectionOf<HTMLElement>;
+            l2Href = cardImageChildren[0].children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href?.children[0] as HTMLImageElement;
             if (l1Thumbnail === undefined) {
                 continue; // don't do anything, it's an ad
@@ -74,6 +79,8 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
             if (l1Thumbnail.getAttribute(DATA_SRC) !== null) {
                 l1Thumbnail.src = l1Thumbnail.getAttribute(DATA_SRC);
             }
+            const duration: HTMLDivElement = cardImageChildren[1] as HTMLDivElement;
+            l1Thumbnail.setAttribute(DATA_DURATION, duration.innerHTML.split("/span>")[1]);
         } else if (originalHref.includes(NHENTAI)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
@@ -102,6 +109,12 @@ function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorEl
     thumbnail.setAttribute(ONCLICK, functionName + "(this)"); // we do it this way to split the code into several files
     thumbnail.setAttribute(DATA_SRC, levelThumbnail.src);
     thumbnail.className = className;
+
+    const duration: string = levelThumbnail.getAttribute(DATA_DURATION);
+    if (duration !== null) {
+        thumbnail.setAttribute(DATA_DURATION, duration)
+    }
+
     thumbnails.push(thumbnail);
 }
 
@@ -148,8 +161,22 @@ async function onImageLoadError(image: HTMLImageElement): Promise<void> {
 
 async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
     if (index < thumbnails.length) {
+        // duration
         const thumbnail = thumbnails[index];
-        container.appendChild(thumbnail);
+        const durationText: string = thumbnail.getAttribute(DATA_DURATION);
+        if (durationText !== null) {
+            const duration: HTMLDivElement = document.createElement("div");
+            duration.innerText = thumbnail.getAttribute(DATA_DURATION);
+            duration.className = "duration";
+            const background: HTMLDivElement = document.createElement("div");
+            background.appendChild(duration); // order matters
+            background.appendChild(thumbnail);
+            container.appendChild(background);
+        } else {
+            container.appendChild(thumbnail);
+        }
+
+        // thumbnail
         thumbnail.src = thumbnail.getAttribute(DATA_SRC);
         thumbnail.onload = async () => {
             await loadThumbnail(thumbnails, container, ++index);
@@ -157,6 +184,7 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
         thumbnail.onerror = async () => {
             await onImageLoadError(thumbnail);
         }
+
     } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
         const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
             entries.forEach(async entry => {

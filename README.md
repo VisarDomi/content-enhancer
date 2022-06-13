@@ -50,7 +50,6 @@ Pagination - to be designed
 
 ## TODO:
 - make the info button show the correct href using the Intersection Observer API
-- show duration on video
 - use localstorage to mark clicked videos and chapters
 - show 5 chapters on the manga thumbnails, and go directly to level 3 if clicked
 - change the final merge to use OOP

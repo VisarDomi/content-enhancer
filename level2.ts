@@ -14,7 +14,7 @@ async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
 
 function goToL1(backButton: HTMLDivElement): void {
     document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
-    document.getElementById(backButton.parentElement.id).remove(); // destroy level 2
+    backButton.parentElement.remove(); // destroy level 2
 
     // scroll to the first level position
     window.scrollTo({top: level1ScrollPosition});
@@ -22,8 +22,8 @@ function goToL1(backButton: HTMLDivElement): void {
 
 async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
     const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
-    const l2ContainerId: string = "l2" + l2Href;
-    const backgroundId = "bg" + l2Href;
+    const l2ContainerId: string = l2Href;
+    const background: HTMLDivElement = searchResultsThumbnail.parentElement as HTMLDivElement;
     const videoLoaded: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADED);
     const videoLoading: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADING);
     if (videoLoaded) {
@@ -33,10 +33,7 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
 
         // remove the load status
         searchResultsThumbnail.removeAttribute(DATA_LOAD_STATUS);
-        // remove the encompassing div
-        const background: HTMLDivElement = document.getElementById(backgroundId) as HTMLDivElement;
-        background.after(searchResultsThumbnail);
-        background.remove();
+        background.removeAttribute("class");
 
         // hide the thumbnails and show the video container
         document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
@@ -45,13 +42,9 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
         // alert("wait for the video to load");
     } else {
         // after the first click, the video's load status is loading
-        const background: HTMLDivElement = document.createElement("div");
         searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADING);
-        background.id = backgroundId;
+        searchResultsThumbnail.className = "clicked"; // TODO: use localstorage to remember watched videos
         background.className = LOADING;
-        searchResultsThumbnail.after(background);
-        searchResultsThumbnail.className = "clicked";
-        background.appendChild(searchResultsThumbnail);
 
         // create level 2
         const l2Container: HTMLDivElement = document.createElement("div");
