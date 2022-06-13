@@ -1,6 +1,15 @@
+// settings
+const LOOK_AHEAD = "1000%"; // look ahead 10 screens
+
+// logic
+let retry: boolean = true; // do we retry a request every 5 seconds?
 let nextSearchResultsHref: string;
 let originalHref: string;
+
+// string names
 const L1_CONTAINER_ID: string = "l1-container";
+const L2_CONTAINER_ID: string = "l2-container";
+const L3_CONTAINER_ID: string = "l3-container";
 const THUMBNAIL = "observeThumbnail";
 const IMAGE = "observeImage";
 const DATA_SRC = "data-src";
@@ -9,14 +18,11 @@ const DATA_HREF = "data-href";
 const EMPTY_STRING = "";
 const ONCLICK = "onclick";
 const CLASS = "class";
-const DIV = "div";
 const BLOCK = "block";
+const FLEX = "flex";
 const NONE = "none";
-const GO_BACK = "go-back";
-const DATA_L2_ID = "data-l2-id";
 
-let doNotRetry = false;
-
+// websites
 const TOKYOMOTION: string = "tokyomotion";
 const KISSJAV: string = "kissjav";
 const NHENTAI: string = "nhentai";
@@ -24,7 +30,7 @@ const ASURASCANS: string = "asurascans";
 
 function setNextSearchResultsHref(currentDocument: Document): void {
     let anchor: HTMLAnchorElement = null;
-    if (originalHref.includes(TOKYOMOTION)) { // TODO: use OOP
+    if (originalHref.includes(TOKYOMOTION)) {
         anchor = currentDocument.querySelector(".prevnext") as HTMLAnchorElement;
     } else if (originalHref.includes(KISSJAV)) {
         anchor = currentDocument.querySelector(".pagination-next") as HTMLAnchorElement;
@@ -38,8 +44,6 @@ function setNextSearchResultsHref(currentDocument: Document): void {
 
 function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElement[] {
     const searchResultsThumbnails: HTMLImageElement[] = [];
-
-    // TODO: use OOP
     const thumbnailList: HTMLElement[] = [];
     if (originalHref.includes(TOKYOMOTION)) {
         const selectedElements: NodeListOf<HTMLAnchorElement> = responseDocument.querySelectorAll(".thumb-popu") as NodeListOf<HTMLAnchorElement>;
@@ -58,7 +62,6 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
         let l2Href: HTMLAnchorElement;
         let l1Thumbnail: HTMLImageElement;
 
-        // TODO: use OOP
         if (originalHref.includes(TOKYOMOTION)) {
             l2Href = thumbnail as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0].children[0] as HTMLImageElement;
@@ -86,18 +89,19 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
             }
         }
 
-        pushThumbnail(l1Thumbnail, l2Href, "loadL2", searchResultsThumbnails);
+        pushThumbnail(l1Thumbnail, l2Href, "loadL2", searchResultsThumbnails, "l1-thumbnail");
     }
 
     return searchResultsThumbnails;
 }
 
-function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[]) {
+function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[], className: string): void {
     // we got all the needed data
     const thumbnail: HTMLImageElement = new Image();
     thumbnail.setAttribute(DATA_HREF, levelHref.href);
     thumbnail.setAttribute(ONCLICK, functionName + "(this)"); // we do it this way to split the code into several files
     thumbnail.setAttribute(DATA_SRC, levelThumbnail.src);
+    thumbnail.className = className;
     thumbnails.push(thumbnail);
 }
 
@@ -115,7 +119,7 @@ async function getResponse(href: string): Promise<Response> {
     const response: Response = await fetch(href);
     if (response.status === 200) { // the base case, the response was successful
         return response;
-    } else if (doNotRetry) {
+    } else if (!retry) {
         return null; // do not retry
     } else { // wait 5 seconds before retrying
         await waitFor(5000);
@@ -127,7 +131,7 @@ async function waitFor(milliseconds: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-async function onImageLoadError(image: HTMLImageElement) {
+async function onImageLoadError(image: HTMLImageElement): Promise<void> {
     // reload the image in 5 seconds
     await waitFor(5000);
     let imageSrc: string = image.src;
@@ -150,6 +154,9 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
         thumbnail.onload = async () => {
             await loadThumbnail(thumbnails, container, ++index);
         }
+        thumbnail.onerror = async () => {
+            await onImageLoadError(thumbnail);
+        }
     } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
         const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
             entries.forEach(async entry => {
@@ -163,7 +170,7 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
         }
         const options: {} = {
             root: null,
-            rootMargin: (index * 100/2) + "%" // load when half is reached
+            rootMargin: LOOK_AHEAD
         }
         const observer: IntersectionObserver = new IntersectionObserver(callback, options);
         const target: HTMLImageElement = document.querySelector("." + THUMBNAIL) as HTMLImageElement;
@@ -176,6 +183,13 @@ function observeLastImage(images: HTMLImageElement[], className: string): void {
     const image: HTMLImageElement = images.pop();
     image.className = className;
     images.push(image);
+}
+
+function createBackButton(container: HTMLDivElement, functionName: string, className: string): void {
+    const backButton: HTMLDivElement = document.createElement("div");
+    backButton.className = className;
+    backButton.setAttribute(ONCLICK, functionName + "(this)");
+    container.appendChild(backButton);
 }
 
 (async () => {
@@ -199,7 +213,7 @@ function observeLastImage(images: HTMLImageElement[], className: string): void {
     document.appendChild(html);
 
     // level 1
-    const l1Container: HTMLDivElement = document.createElement(DIV);
+    const l1Container: HTMLDivElement = document.createElement("div");
     l1Container.id = L1_CONTAINER_ID;
     body.appendChild(l1Container);
 

@@ -1,9 +1,9 @@
 let level2ScrollPosition: number;
 let nextImageHref: string;
-let breakLoop: boolean; // don't send any more requests if you go back to level 2
+let infoClicked: boolean;
+let breakLoop: boolean; // don't send any more requests if you go back a level
 
 async function loadL3(element: HTMLElement): Promise<void> {
-    // don't request more images if we go back to level 2
     breakLoop = false;
 
     // scroll to the top - order matters
@@ -11,17 +11,16 @@ async function loadL3(element: HTMLElement): Promise<void> {
     window.scrollTo({top: 0});
 
     // create level 3
-    const l2ContainerId: string = element.getAttribute(DATA_L2_ID);
-    const l2Container: HTMLDivElement = document.getElementById(l2ContainerId) as HTMLDivElement;
+    const l2Container: HTMLDivElement = document.getElementById(L2_CONTAINER_ID) as HTMLDivElement;
     const l3Href: string = element.getAttribute(DATA_HREF);
-    const l3ContainerId: string = "l3" + l3Href;
-    const l3Container: HTMLDivElement = document.createElement(DIV);
-    l3Container.id = l3ContainerId;
+    const l3Container: HTMLDivElement = document.createElement("div");
+    l3Container.id = L3_CONTAINER_ID;
     document.body.appendChild(l3Container);
     l2Container.style.display = NONE; // hide level 2
-    createGoToL2(l2Container, l3Container, "goToL2");
+    createBackButton(l3Container, "goToL2", "go-back");
+    createInfoButton(l3Href, l3Container);
 
-    // now it's time to load the images TODO: use OOP
+    // now it's time to load the images
     if (originalHref.includes(NHENTAI)) {
         nextImageHref = l3Href;
         await loadNhImage(l3Container);
@@ -32,28 +31,13 @@ async function loadL3(element: HTMLElement): Promise<void> {
     }
 }
 
-function createGoToL2(l2Container: HTMLDivElement, l3Container: HTMLDivElement, functionName: string): void {
-    // the back button
-    const goToL2: HTMLDivElement = document.createElement(DIV);
-    goToL2.className = GO_BACK;
-    goToL2.setAttribute(ONCLICK, functionName + "('" + l2Container.id + "', '" + l3Container.id + "')");
-    l3Container.appendChild(goToL2);
-}
+function goToL2(backButton: HTMLDivElement): void {
+    document.getElementById(L2_CONTAINER_ID).style.display = FLEX; // show level 2
+    document.getElementById(backButton.parentElement.id).remove(); // destroy level 3
 
-function goToL2(l2ContainerId: string, l3ContainerId: string): void {
-    let show: string;
-    if (originalHref.includes(NHENTAI)) { // TODO: use OOP
-        show = BLOCK;
-    } else if (originalHref.includes(ASURASCANS)) {
-        show = "flex";
-    }
-    document.getElementById(l2ContainerId).style.display = show; // show level 2
-    document.getElementById(l3ContainerId).remove(); // destroy level 3
-
-    // break loop - stop requesting new images TODO: use OOP
+    // stop requests
     breakLoop = true;
-    // set doNotRetry to false again
-    doNotRetry = false;
+    retry = true;
 
     // scroll to level 2 scroll position
     window.scrollTo({top: level2ScrollPosition});
@@ -70,7 +54,7 @@ async function loadNhImage(l3Container: HTMLDivElement): Promise<void> {
         l3Image.src = image.src;
         l3Container.appendChild(l3Image);
 
-        // set the next image to be loaded TODO: use OOP
+        // set the next image to be loaded
         const nextImage = imageDocument.querySelector(".next") as HTMLAnchorElement;
         nextImageHref = nextImage === null ? EMPTY_STRING : nextImage.href;
 
@@ -118,6 +102,9 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
         image.onload = async () => {
             await loadAsImage(images, container, ++index);
         }
+        image.onerror = async () => {
+            await onImageLoadError(image);
+        }
     } else if (index === images.length) {
         const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
             entries.forEach(async entry => {
@@ -126,7 +113,7 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
                     observer.unobserve(entryTarget);
                     entryTarget.removeAttribute(CLASS);
                     const nextChapterHref: string = getNextChapterHref(images);
-                    doNotRetry = true;
+                    retry = false;
                     const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref);
                     if (nextChapterImages.length > 0) {
                         observeLastImage(nextChapterImages, IMAGE);
@@ -137,7 +124,7 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
         }
         const options: {} = {
             root: null,
-            rootMargin: (index * 100/2) + "%" // load when half is reached
+            rootMargin: LOOK_AHEAD
         }
         const observer: IntersectionObserver = new IntersectionObserver(callback, options);
         const target: HTMLImageElement = document.querySelector("." + IMAGE) as HTMLImageElement;
@@ -147,7 +134,7 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
 
 function getNextChapterHref(images: HTMLImageElement[]): string {
     const href: string = images[0].getAttribute(DATA_HREF);
-    const SEPARATOR = "-";
+    const SEPARATOR: string = "-";
     const parts: string[] = href.split(SEPARATOR);
     const CHAPTER: string = "chapter";
     const indexOfChapter: number = parts.indexOf(CHAPTER);
@@ -165,4 +152,29 @@ function getNextChapterHref(images: HTMLImageElement[]): string {
     }
     nextChapterHref += CHAPTER + SEPARATOR + nextChapterNumber + "/";
     return nextChapterHref;
+}
+
+function createInfoButton(l3Href: string, l3Container: HTMLDivElement) {
+    const info: HTMLDivElement = document.createElement("div");
+    info.className = "info";
+    const clicker: HTMLDivElement = document.createElement("div");
+    clicker.className = "clicker";
+    infoClicked = false;
+    clicker.onclick = () => {
+        infoClicked = !infoClicked; // change the status
+        if (infoClicked) {
+            info.className = "info-clicked"
+        } else {
+            info.className = "info";
+        }
+    }
+
+    // TODO: use the intersection observer api to show the correct url
+    const span: HTMLSpanElement = document.createElement("span");
+    span.className = "info-content";
+    span.innerText = l3Href;
+
+    info.appendChild(span);
+    l3Container.appendChild(info);
+    l3Container.appendChild(clicker);
 }

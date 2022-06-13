@@ -1,3 +1,4 @@
+/* level 1 */
 body {
     margin: 0;
     background-color: black;
@@ -25,31 +26,80 @@ video {
     opacity: 0.5;
 }
 
-.go-video-l1 {
+/* level 2 */
+.go-back-video {
     width: 100%;
     height: 100vh;
     background-color: hsl(0, 50%, 25%);
 }
 
-.go-back {
-    height: 30%;
-    width: 30%;
-    position: fixed;
-    top: 0;
-    left: 0;
+.refresh {
+    margin-top: 200px;
+    margin-bottom: 200px;
 }
 
-.go-back:active {
-    background-color: rgba(0, 0, 0, 0.5);
+.go-back-manga, .go-back {
+    width: 100%;
+    height: 30vh;
+    background-color: hsl(0, 50%, 25%);
 }
 
-button {
+.refresh, .chapter-button {
     font-size: 2rem;
     line-height: 3;
     text-align: center;
 }
 
-.refresh {
-    margin-top: 200px;
-    margin-bottom: 200px;
+.l2-thumbnail {
+    width: 50%;
+}
+
+/* level 3 */
+.go-back {
+    position: fixed;
+    left: 0;
+    top: 0;
+    animation: fadeout 1s linear 0s 1 normal forwards running;
+}
+
+@keyframes fadeout {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.clicker {
+    background-color: rgba(0, 0, 0, 0.0);
+    z-index: 1;
+}
+
+.clicker, .info, .info-clicked {
+    position: fixed;
+    left: 0;
+    top: 30%;
+    height: 30%;
+    width: 100%;
+}
+
+.info {
+    display: none;
+}
+
+.info-clicked {
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+}
+
+.info-content {
+    font-size: 1.1rem;
+    font-family: sans-serif;
+    color: white;
+    line-height: 2;
+    margin: 20px;
 }
