@@ -106,7 +106,8 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
             await onImageLoadError(image);
         }
     } else if (index === images.length) {
-        const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+        // load next chapter
+        const nextChapter = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
             entries.forEach(async entry => {
                 if (entry.isIntersecting) {
                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
@@ -122,13 +123,33 @@ async function loadAsImage(images: HTMLImageElement[], container: HTMLDivElement
                 }
             })
         }
-        const options: {} = {
+        const nextChapterOptions: {} = {
             root: null,
             rootMargin: LOOK_AHEAD
         }
-        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+        const nextChapterObserver: IntersectionObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
         const target: HTMLImageElement = document.querySelector("." + IMAGE) as HTMLImageElement;
-        observer.observe(target);
+        nextChapterObserver.observe(target);
+
+        // set the info of the current image
+        const setInfo = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+            entries.forEach(async entry => {
+                if (entry.isIntersecting) {
+                    const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                    const infoContent: HTMLSpanElement = document.querySelector(".info-content") as HTMLSpanElement;
+                    infoContent.innerHTML = entryTarget.getAttribute(DATA_HREF);
+                }
+            })
+        }
+        const infoOptions: {} = {
+            root: null,
+            rootMargin: "0px"
+        }
+        const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
+        const targets: NodeListOf<HTMLImageElement> = container.querySelectorAll("img") as NodeListOf<HTMLImageElement>;
+        targets.forEach(target => {
+            infoObserver.observe(target);
+        })
     }
 }
 
@@ -169,7 +190,6 @@ function createInfoButton(l3Href: string, l3Container: HTMLDivElement) {
         }
     }
 
-    // TODO: use the intersection observer api to show the correct url
     const span: HTMLSpanElement = document.createElement("span");
     span.className = "info-content";
     span.innerText = l3Href;
