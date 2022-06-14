@@ -10,8 +10,7 @@ img, video {
 }
 
 video {
-    margin-top: 100px;
-    margin-bottom: 100px;
+    margin: 100px 0;
 }
 
 .loading {
@@ -33,6 +32,30 @@ video {
     color: white;
     z-index: 1;
     padding: 5px;
+    bottom: 0;
+}
+
+.thumbnail-container {
+    position: relative;
+}
+
+.latest-container {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    font-family: sans-serif;
+    color: white;
+}
+
+.last-read-element, .last-available-element {
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 50%;
+}
+
+.last-read-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
+    font-size: 2rem;
 }
 
 /* level 2 */
@@ -43,8 +66,7 @@ video {
 }
 
 .refresh {
-    margin-top: 200px;
-    margin-bottom: 200px;
+    margin: 200px 0;
 }
 
 .go-back-manga, .go-back {

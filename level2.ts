@@ -1,4 +1,5 @@
 let level1ScrollPosition: number;
+const chapters: HTMLDivElement[] = [];
 
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
@@ -13,8 +14,15 @@ async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
 }
 
 function goToL1(backButton: HTMLDivElement): void {
+    const l2Container: HTMLDivElement = backButton.parentElement as HTMLDivElement;
     document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
-    backButton.parentElement.remove(); // destroy level 2
+    l2Container.remove(); // destroy level 2
+
+    const l2Href: string = l2Container.getAttribute(DATA_HREF);
+    const lastRead1: HTMLDivElement = document.getElementById(LAST_READ_1 + l2Href) as HTMLDivElement;
+    const lastRead2: HTMLDivElement = document.getElementById(LAST_READ_2 + l2Href) as HTMLDivElement;
+    const lastAvailable2: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + l2Href) as HTMLDivElement;
+    updateLastReadChapter(chapters, lastRead1, lastRead2, lastAvailable2);
 
     // scroll to the first level position
     window.scrollTo({top: level1ScrollPosition});
@@ -126,6 +134,7 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
     const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
     const l2Container: HTMLDivElement = document.createElement("div");
     l2Container.id = L2_CONTAINER_ID;
+    l2Container.setAttribute(DATA_HREF, l2Href);
     l2Container.style.display = FLEX;
     document.body.appendChild(l2Container);
     document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
@@ -142,7 +151,8 @@ async function loadManga(searchResultsThumbnail): Promise<void> {
         await loadThumbnail(galleryThumbnails, l2Container);
     } else if (originalHref.includes(ASURASCANS)) {
         l2Container.style.flexDirection = "column";
-        const chapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(".eph-num") as NodeListOf<HTMLDivElement>;
+        const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
+        chapters.splice(0, 0, ...Array.from(nodeChapters));
         for (const chapter of chapters) {
             const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
             currentChapterHref = anchor.href;

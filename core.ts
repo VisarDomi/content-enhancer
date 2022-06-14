@@ -13,6 +13,10 @@ const L2_CONTAINER_ID: string = "l2-container";
 const L3_CONTAINER_ID: string = "l3-container";
 const THUMBNAIL = "observeThumbnail";
 const IMAGE = "observeImage";
+const EPH_NUM = "eph-num";
+const LAST_READ_1 = "lastRead1";
+const LAST_READ_2 = "lastRead2";
+const LAST_AVAILABLE_2 = "last-available-2";
 const DATA_SRC = "data-src";
 const DATA_CFSRC = "data-cfsrc";
 const DATA_HREF = "data-href";
@@ -91,7 +95,6 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElemen
         } else if (originalHref.includes(ASURASCANS)) {
             l2Href = thumbnail.children[0] as HTMLAnchorElement;
             l1Thumbnail = l2Href.children[0] as HTMLImageElement;
-            // fix lazy-loading
             if (l1Thumbnail.getAttribute(DATA_CFSRC) !== null) {
                 l1Thumbnail.src = l1Thumbnail.getAttribute(DATA_CFSRC);
             }
@@ -160,28 +163,123 @@ async function onImageLoadError(image: HTMLImageElement): Promise<void> {
     image.src = imageSrc;
 }
 
+function appendToContainer(thumbnail: HTMLImageElement, container: HTMLDivElement): void {
+    if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) { // TODO: add last watched information
+        const duration: HTMLDivElement = document.createElement("div");
+        duration.innerText = thumbnail.getAttribute(DATA_DURATION);
+        duration.className = "duration";
+        const thumbnailContainer: HTMLDivElement = document.createElement("div");
+        thumbnailContainer.className = "thumbnail-container";
+        thumbnailContainer.appendChild(duration); // order matters
+        thumbnailContainer.appendChild(thumbnail);
+        container.appendChild(thumbnailContainer);
+    } else if (originalHref.includes(NHENTAI)) { // TODO: add last read information
+        container.appendChild(thumbnail);
+    } else if (originalHref.includes(ASURASCANS)) {
+        const l2Href = thumbnail.getAttribute(DATA_HREF);
+
+        const latestContainer: HTMLDivElement = document.createElement("div");
+        latestContainer.className = "latest-container";
+        const lastRead: HTMLDivElement = document.createElement("div");
+        lastRead.className = "last-read-element";
+        latestContainer.appendChild(lastRead);
+        const lastAvailable: HTMLDivElement = document.createElement("div");
+        lastAvailable.className = "last-available-element";
+        latestContainer.appendChild(lastAvailable);
+
+        const lastRead1: HTMLDivElement = document.createElement("div");
+        lastRead1.id = LAST_READ_1 + l2Href;
+        lastRead1.innerText = "Loading";
+        lastRead.appendChild(lastRead1);
+        const lastRead2: HTMLDivElement = document.createElement("div");
+        lastRead2.id = LAST_READ_2 + l2Href;
+        lastRead2.innerText = "Loading";
+        lastRead.appendChild(lastRead2);
+        const lastAvailable1: HTMLDivElement = document.createElement("div");
+        lastAvailable1.innerText = "Last available:";
+        lastAvailable.appendChild(lastAvailable1);
+        const lastAvailable2: HTMLDivElement = document.createElement("div");
+        lastAvailable2.id = LAST_AVAILABLE_2 + l2Href;
+        lastAvailable2.innerText = "Loading";
+        lastAvailable.appendChild(lastAvailable2);
+
+        // let's send a request asynchronously
+        const mangaDocumentPromise: Promise<Document> = getResponseDocument(l2Href);
+        mangaDocumentPromise.then(mangaDocument => {
+            const chapters: HTMLDivElement[] = [];
+            const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
+            chapters.splice(0, 0, ...Array.from(nodeChapters));
+            updateLastReadChapter(chapters, lastRead1, lastRead2, lastAvailable2);
+        })
+
+        const thumbnailContainer: HTMLDivElement = document.createElement("div");
+        thumbnailContainer.className = "thumbnail-container";
+        thumbnailContainer.appendChild(latestContainer);
+        thumbnailContainer.appendChild(thumbnail);
+        container.append(thumbnailContainer);
+    }
+}
+
+function updateLastReadChapter(chapters: HTMLDivElement[], lastRead1: HTMLDivElement, lastRead2: HTMLDivElement, lastAvailable2: HTMLDivElement) {
+    const readChapters: { chapterName: string, lastRead: number, chapterHref: string }[] = [];
+    let lastReadFound: boolean = false;
+    for (let i = 0; i < chapters.length; i++) {
+        const chapter = chapters[i];
+        const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
+        const chapterHref: string = anchor.href;
+        const lastRead: string = localStorage.getItem(chapterHref);
+        const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
+        const chapterName = span.innerText;
+        if (lastRead !== null) {
+            lastReadFound = true;
+            const last: number = parseInt(lastRead);
+            readChapters.push({
+                chapterName,
+                lastRead: last,
+                chapterHref
+            })
+        }
+        if (i === 0) {
+            lastAvailable2.innerText = chapterName;
+        }
+    }
+
+    if (lastReadFound) {
+        // I caved in and got some help for this reduce function
+        const lastReadChapter: { chapterName: string, lastRead: number } = readChapters.reduce((previous, current) => {
+            return (previous.lastRead > current.lastRead) ? previous : current;
+        })
+        lastRead1.innerText = "Read: " + getTimeAgo(lastReadChapter.lastRead + "");
+        lastRead2.innerText = lastReadChapter.chapterName;
+    } else {
+        lastRead1.innerText = "Never read before";
+        lastRead2.innerText = "New";
+    }
+}
+
+function observeThumbnails(): void {
+    const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+        entries.forEach(async entry => {
+            if (entry.isIntersecting) {
+                const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                observer.unobserve(entryTarget);
+                entryTarget.removeAttribute(CLASS);
+                await loadL1();
+            }
+        })
+    }
+    const options: {} = {
+        root: null,
+        rootMargin: LOOK_AHEAD
+    }
+    const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+    const target: HTMLImageElement = document.querySelector("." + THUMBNAIL) as HTMLImageElement;
+    observer.observe(target);
+}
+
 async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
     if (index < thumbnails.length) {
         const thumbnail = thumbnails[index];
-
-        // TODO: get latest chapter available
-        // TODO: get last read chapter
-
-        // duration
-        const durationText: string = thumbnail.getAttribute(DATA_DURATION);
-        if (durationText !== null) {
-            const duration: HTMLDivElement = document.createElement("div");
-            duration.innerText = thumbnail.getAttribute(DATA_DURATION);
-            duration.className = "duration";
-            const background: HTMLDivElement = document.createElement("div");
-            background.appendChild(duration); // order matters
-            background.appendChild(thumbnail);
-            container.appendChild(background);
-        } else {
-            container.appendChild(thumbnail);
-        }
-
-        // thumbnail
         thumbnail.src = thumbnail.getAttribute(DATA_SRC);
         thumbnail.onload = async () => {
             await loadThumbnail(thumbnails, container, ++index);
@@ -189,25 +287,9 @@ async function loadThumbnail(thumbnails: HTMLImageElement[], container: HTMLDivE
         thumbnail.onerror = async () => {
             await onImageLoadError(thumbnail);
         }
-
+        appendToContainer(thumbnail, container);
     } else if (index === thumbnails.length && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
-        const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
-            entries.forEach(async entry => {
-                if (entry.isIntersecting) {
-                    const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-                    observer.unobserve(entryTarget);
-                    entryTarget.removeAttribute(CLASS);
-                    await loadL1();
-                }
-            })
-        }
-        const options: {} = {
-            root: null,
-            rootMargin: LOOK_AHEAD
-        }
-        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
-        const target: HTMLImageElement = document.querySelector("." + THUMBNAIL) as HTMLImageElement;
-        observer.observe(target);
+        observeThumbnails();
     }
 }
 

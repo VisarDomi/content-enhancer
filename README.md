@@ -50,8 +50,9 @@ Pagination - to be designed
 
 ## TODO:
 - use localstorage to mark clicked videos and chapters:
+  * for galleries, when on level 1, show the last read time and last read page
+  * for galleries, when on level 2, highlight the last read page
   * for videos, when on level 2, save a key value pair -> videoHref: lastTimeWatched
   * for videos, when on level 1, show lastTimeWatched
-  * for chapters, when on level 1, show the latest chapter available, and the last read chapter
 - change the final merge to use OOP
 - add ytboob, e-hentai, and 1stkissmanga to the list -> how easy is it to implement using OOP?
