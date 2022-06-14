@@ -1,36 +1,68 @@
 let level1ScrollPosition: number;
 const chapters: HTMLDivElement[] = [];
+const galleryThumbnailsList: HTMLDivElement[] = [];
 
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
 const LOADING = "loading";
 
-async function loadL2(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) {
-        await loadVideo(searchResultsThumbnail);
-    } else if (originalHref.includes(NHENTAI) || originalHref.includes(ASURASCANS)) {
-        await loadManga(searchResultsThumbnail);
+function getLevelTwoVideo(searchResultsThumbnail: HTMLImageElement, background: HTMLDivElement) {
+    // the video
+    const levelTwoVideo: HTMLVideoElement = document.createElement("video");
+    levelTwoVideo.controls = true;
+    levelTwoVideo.preload = "auto";
+    levelTwoVideo.playsInline = true;
+    levelTwoVideo.muted = true;
+    levelTwoVideo.onloadedmetadata = async () => {
+        levelTwoVideo.onloadedmetadata = null; // activate this function just once
+        // manually autoplay
+        await waitFor(100);
+        await levelTwoVideo.play();
+        await waitFor(100);
+        levelTwoVideo.pause();
+        // the video is loaded
+        searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADED);
+        background.className = THUMBNAIL_CONTAINER + " " + LOADED;
     }
+    levelTwoVideo.onerror = async () => {
+        await waitRandomly(5000, 10000);
+        levelTwoVideo.load();
+    }
+    return levelTwoVideo;
 }
 
-function goToL1(backButton: HTMLDivElement): void {
-    const l2Container: HTMLDivElement = backButton.parentElement as HTMLDivElement;
-    document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
-    l2Container.remove(); // destroy level 2
-
-    const l2Href: string = l2Container.getAttribute(DATA_HREF);
-    const lastRead1: HTMLDivElement = document.getElementById(LAST_READ_1 + l2Href) as HTMLDivElement;
-    const lastRead2: HTMLDivElement = document.getElementById(LAST_READ_2 + l2Href) as HTMLDivElement;
-    const lastAvailable2: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + l2Href) as HTMLDivElement;
-    updateLastReadChapter(chapters, lastRead1, lastRead2, lastAvailable2);
-
-    // scroll to the first level position
-    window.scrollTo({top: level1ScrollPosition});
+async function setBestSource(levelTwoHref: string, levelTwoVideo: HTMLVideoElement, levelTwoContainer: HTMLDivElement) {
+    // the source
+    const levelTwoSource: HTMLSourceElement = document.createElement("source");
+    const videoDocument: Document = await getResponseDocument(levelTwoHref);
+    let video: HTMLVideoElement;
+    if (levelTwoHref.includes(TOKYOMOTION)) {
+        video = videoDocument.getElementById("vjsplayer") as HTMLVideoElement;
+    } else if (levelTwoHref.includes(KISSJAV)) {
+        video = videoDocument.getElementById("player-fluid") as HTMLVideoElement;
+    }
+    const sources: NodeListOf<HTMLSourceElement> = video.querySelectorAll("source") as NodeListOf<HTMLSourceElement>;
+    // select the best source
+    let bestSource: string = null;
+    for (const source of sources) {
+        if (originalHref.includes(TOKYOMOTION) && source.src.includes("/hd/")) {
+            bestSource = source.src;
+        } else if (originalHref.includes(KISSJAV) && source.src.includes("720p")) {
+            bestSource = source.src;
+        }
+    }
+    if (bestSource === null) {
+        bestSource = sources[0].src;
+    }
+    // order matters (first get the source, then append)
+    levelTwoSource.src = bestSource;
+    levelTwoVideo.appendChild(levelTwoSource);
+    levelTwoContainer.appendChild(levelTwoVideo);
 }
 
-async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
-    const l2ContainerId: string = l2Href;
+async function loadVideo(searchResultsThumbnail: HTMLImageElement) {
+    const levelTwoHref: string = searchResultsThumbnail.getAttribute(DATA_HREF);
+    const levelTwoContainerId: string = levelTwoHref;
     const background: HTMLDivElement = searchResultsThumbnail.parentElement as HTMLDivElement;
     const videoLoaded: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADED);
     const videoLoading: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADING);
@@ -41,164 +73,142 @@ async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void
 
         // remove the load status
         searchResultsThumbnail.removeAttribute(DATA_LOAD_STATUS);
-        background.removeAttribute("class");
+        background.className = THUMBNAIL_CONTAINER;
 
         // hide the thumbnails and show the video container
         document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
-        document.getElementById(l2ContainerId).style.display = BLOCK; // show level 2
+        document.getElementById(levelTwoContainerId).style.display = BLOCK; // show level 2
     } else if (videoLoading) {
         // alert("wait for the video to load");
     } else {
         // after the first click, the video's load status is loading
         searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADING);
         searchResultsThumbnail.className = "clicked"; // TODO: use localstorage to remember watched videos
-        background.className = LOADING;
+        background.className = THUMBNAIL_CONTAINER + " " + LOADING;
 
         // create level 2
-        const l2Container: HTMLDivElement = document.createElement("div");
-        l2Container.id = l2ContainerId;
-        l2Container.style.display = NONE;
-        document.body.appendChild(l2Container);
+        const levelTwoContainer: HTMLDivElement = createTagWithId("div", levelTwoContainerId) as HTMLDivElement;
+        levelTwoContainer.style.display = NONE;
+        document.querySelector("body").appendChild(levelTwoContainer);
 
-        // the video
-        const l2Video: HTMLVideoElement = document.createElement("video");
-        l2Video.controls = true;
-        l2Video.preload = "auto";
-        l2Video.playsInline = true;
-        l2Video.muted = true;
-        l2Video.onloadedmetadata = async () => {
-            l2Video.onloadedmetadata = null; // activate this function just once
-            // manually autoplay
-            await waitFor(100);
-            await l2Video.play();
-            await waitFor(100);
-            l2Video.pause();
-            // the video is loaded
-            searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADED);
-            background.className = LOADED;
-        }
-        l2Video.onerror = async () => {
-            await waitFor(5000);
-            l2Video.load();
-        }
-
-        // the source
-        const l2Source: HTMLSourceElement = document.createElement("source");
-        const videoDocument: Document = await getResponseDocument(l2Href);
-        let video: HTMLVideoElement;
-        if (l2Href.includes(TOKYOMOTION)) {
-            video = videoDocument.getElementById("vjsplayer") as HTMLVideoElement;
-        } else if (l2Href.includes(KISSJAV)) {
-            video = videoDocument.getElementById("player-fluid") as HTMLVideoElement;
-        }
-        const sources: NodeListOf<HTMLSourceElement> = video.querySelectorAll("source") as NodeListOf<HTMLSourceElement>;
-        // select the best source
-        let bestSource: string = null;
-        for (const source of sources) {
-            if (originalHref.includes(TOKYOMOTION) && source.src.includes("/hd/")) {
-                bestSource = source.src;
-            } else if (originalHref.includes(KISSJAV) && source.src.includes("720p")) {
-                bestSource = source.src;
-            }
-        }
-        if (bestSource === null) {
-            bestSource = sources[0].src;
-        }
-        // order matters (first get the source, then append)
-        l2Source.src = bestSource;
-        l2Video.appendChild(l2Source);
-        l2Container.appendChild(l2Video);
+        const levelTwoVideo = getLevelTwoVideo(searchResultsThumbnail, background);
+        await setBestSource(levelTwoHref, levelTwoVideo, levelTwoContainer);
 
         // the go back button
-        createBackButton(l2Container, "goToL1", "go-back-video");
+        createBackButton(levelTwoContainer, "goToLevelOne", "go-back-video");
 
         // refresh should be at the end of the page
-        const refresh: HTMLButtonElement = document.createElement("button");
-        refresh.className = "refresh";
+        const refresh: HTMLButtonElement = createTagWithClassName("button", "refresh") as HTMLButtonElement;
         refresh.type = "button";
         refresh.onclick = () => {
-            l2Video.scrollIntoView();
-            l2Video.load();
+            levelTwoVideo.scrollIntoView();
+            levelTwoVideo.load();
         };
         refresh.innerText = "Reload the video";
-        l2Container.appendChild(refresh);
+        levelTwoContainer.appendChild(refresh);
     }
 }
 
-async function loadManga(searchResultsThumbnail): Promise<void> {
+async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document) {
+    levelTwoContainer.style.flexDirection = "row";
+    levelTwoContainer.style.flexWrap = "wrap";
+    const galleryThumbnails: HTMLImageElement[] = [];
+    const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(".thumbs").children as HTMLCollectionOf<HTMLDivElement>;
+    galleryThumbnailsList.splice(0, galleryThumbnailsList.length, ...Array.from(galleryThumbnailsCollection)); // replace the array
+    for (const galleryThumbnailElement of galleryThumbnailsList) {
+        const levelThreeHref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
+        const levelTwoThumbnail: HTMLImageElement = levelThreeHref.children[0] as HTMLImageElement;
+        levelTwoThumbnail.src = levelTwoThumbnail.getAttribute(DATA_SRC);
+        pushThumbnail(levelTwoThumbnail, levelThreeHref, "loadLevelThree", galleryThumbnails, "l2-thumbnail");
+    }
+    await loadThumbnail(galleryThumbnails, levelTwoContainer);
+}
+
+function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document) {
+    levelTwoContainer.style.flexDirection = "column";
+    const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
+    chapters.splice(0, chapters.length, ...Array.from(nodeChapters)); // replace the array
+    for (const chapter of chapters) {
+        const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
+        currentChapterHref = anchor.href;
+
+        // add the chapter button
+        const chapterContainer: HTMLDivElement = createTagWithClassName("div", "chapter-container") as HTMLDivElement;
+        const chapterButton: HTMLButtonElement = createTagWithClassName("button", "chapter-button") as HTMLButtonElement;
+        const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
+        chapterButton.innerText = span.innerText;
+        chapterButton.setAttribute(DATA_HREF, currentChapterHref);
+        chapterButton.onclick = async () => {
+            await loadLevelThree(chapterButton);
+        }
+        chapterContainer.appendChild(chapterButton);
+
+        // add the last read information next to the button
+        const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "last-read-container") as HTMLDivElement;
+        const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read") as HTMLSpanElement;
+        lastRead.id = currentChapterHref;
+        const lastReadString: string = localStorage.getItem(currentChapterHref);
+        if (lastReadString === null) {
+            lastRead.innerText = "Never read";
+        } else {
+            lastRead.innerText = getTimeAgo(lastReadString);
+        }
+
+        lastReadContainer.appendChild(lastRead);
+        chapterContainer.appendChild(lastReadContainer);
+        levelTwoContainer.appendChild(chapterContainer);
+    }
+}
+
+async function loadManga(searchResultsThumbnail: HTMLImageElement) {
     // scroll to the top - order matters
     level1ScrollPosition = window.scrollY;
     window.scrollTo({top: 0});
 
     // create level 2
-    const l2Href: string = searchResultsThumbnail.getAttribute(DATA_HREF);
-    const l2Container: HTMLDivElement = document.createElement("div");
-    l2Container.id = L2_CONTAINER_ID;
-    l2Container.setAttribute(DATA_HREF, l2Href);
-    l2Container.style.display = FLEX;
-    document.body.appendChild(l2Container);
+    const levelTwoHref: string = searchResultsThumbnail.getAttribute(DATA_HREF);
+    const levelTwoContainer: HTMLDivElement = createTagWithId("div", L2_CONTAINER_ID) as HTMLDivElement;
+    levelTwoContainer.setAttribute(DATA_HREF, levelTwoHref);
+    levelTwoContainer.style.display = FLEX;
+    document.querySelector("body").appendChild(levelTwoContainer);
     document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
-    createBackButton(l2Container, "goToL1", "go-back-manga");
+    createBackButton(levelTwoContainer, "goToLevelOne", "go-back-manga");
 
     // get the gallery thumbnails
-    const mangaDocument: Document = await getResponseDocument(l2Href);
+    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
 
 
     if (originalHref.includes(NHENTAI)) {
-        l2Container.style.flexDirection = "row";
-        l2Container.style.flexWrap = "wrap";
-        const galleryThumbnails = getGalleryThumbnails(mangaDocument);
-        await loadThumbnail(galleryThumbnails, l2Container);
+        await loadHManga(levelTwoContainer, mangaDocument);
     } else if (originalHref.includes(ASURASCANS)) {
-        l2Container.style.flexDirection = "column";
-        const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
-        chapters.splice(0, 0, ...Array.from(nodeChapters));
-        for (const chapter of chapters) {
-            const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
-            currentChapterHref = anchor.href;
-
-            // add the chapter button
-            const chapterContainer: HTMLDivElement = document.createElement("div");
-            chapterContainer.className = "chapter-container";
-            const chapterButton: HTMLButtonElement = document.createElement("button");
-            const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
-            chapterButton.innerText = span.innerText;
-            chapterButton.className = "chapter-button";
-            chapterButton.setAttribute(DATA_HREF, currentChapterHref);
-            chapterButton.onclick = async () => {
-                await loadL3(chapterButton);
-            }
-            chapterContainer.appendChild(chapterButton);
-
-            // add the last read information next to the button
-            const lastReadContainer: HTMLDivElement = document.createElement("div");
-            lastReadContainer.className = "last-read-container";
-            const lastRead: HTMLSpanElement = document.createElement("span");
-            lastRead.className = "last-read";
-            lastRead.id = currentChapterHref;
-            const lastReadString: string = localStorage.getItem(currentChapterHref);
-            if (lastReadString === null) {
-                lastRead.innerText = "Never read";
-            } else {
-                lastRead.innerText = getTimeAgo(lastReadString);
-            }
-
-            lastReadContainer.appendChild(lastRead);
-            chapterContainer.appendChild(lastReadContainer);
-            l2Container.appendChild(chapterContainer);
-        }
+        loadNhManga(levelTwoContainer, mangaDocument);
     }
 }
 
-function getGalleryThumbnails(galleryDocument: Document): HTMLImageElement[] {
-    const galleryThumbnails: HTMLImageElement[] = [];
-    const galleryThumbnailList: HTMLElement[] = Array.from(galleryDocument.querySelector(".thumbs").children as HTMLCollectionOf<HTMLDivElement>);
-    for (const galleryThumbnailElement of galleryThumbnailList) {
-        const l3ref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
-        const l2Thumbnail: HTMLImageElement = l3ref.children[0] as HTMLImageElement;
-        l2Thumbnail.src = l2Thumbnail.getAttribute(DATA_SRC);
-        pushThumbnail(l2Thumbnail, l3ref, "loadL3", galleryThumbnails, "l2-thumbnail");
+async function loadLevelTwo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
+    if (originalHref.includes(TOKYOMOTION) || originalHref.includes(KISSJAV)) {
+        await loadVideo(searchResultsThumbnail);
+    } else if (originalHref.includes(NHENTAI) || originalHref.includes(ASURASCANS)) {
+        await loadManga(searchResultsThumbnail);
+    }
+}
+
+function goToLevelOne(backButton: HTMLDivElement): void {
+    const levelTwoContainer: HTMLDivElement = backButton.parentElement as HTMLDivElement;
+    document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
+    levelTwoContainer.remove(); // destroy level 2
+
+    const levelTwoHref: string = levelTwoContainer.getAttribute(DATA_HREF);
+    const lastReadOne: HTMLDivElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
+    const lastReadTwo: HTMLDivElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
+    const lastAvailableTwo: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
+
+    if (originalHref.includes(NHENTAI)) {
+        updateLevelOneHManga(galleryThumbnailsList, lastReadOne, lastReadTwo, lastAvailableTwo);
+    } else if (originalHref.includes(ASURASCANS)) {
+        updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableTwo);
     }
 
-    return galleryThumbnails;
+    // scroll to the first level position
+    window.scrollTo({top: level1ScrollPosition});
 }

@@ -1,3 +1,17 @@
+// ==UserScript==
+// @name         Content Enhancer
+// @namespace    visardomi4@gmail.com
+// @version      0.1
+// @description  Enhance the content
+// @author       Visar Domi
+// @match        https://www.asurascans.com/*
+// @match        https://nhentai.net/*
+// @match        https://www.tokyomotion.net/*
+// @match        https://kissjav.li/*
+// @grant        none
+// ==/UserScript==
+
+
 (() => {
     const css = `/* level 1 */
 body {
@@ -976,31 +990,24 @@ async function loadNhMangaImage(images, levelThreeContainer, index = 0) {
     await loadThumbnail(searchResultsThumbnails, levelOneContainer);
 })();
 //# sourceMappingURL=startUp.js.map`;
-
-    function createTag(innerHTML: string, tagName: string): HTMLElement {
-        const tag: HTMLElement = document.createElement(tagName) as HTMLElement;
+    function createTag(innerHTML, tagName) {
+        const tag = document.createElement(tagName);
         tag.className = "content-enhancer";
         tag.innerHTML = innerHTML;
-
         return tag;
     }
-
-    const head: HTMLHeadElement = document.head;
-
-    const cssTag: HTMLStyleElement = createTag(css, "style") as HTMLStyleElement;
+    const head = document.head;
+    const cssTag = createTag(css, "style");
     head.appendChild(cssTag);
-
     const SCRIPT = "script";
-    const levelOneTag: HTMLScriptElement = createTag(levelOne, SCRIPT) as HTMLScriptElement;
+    const levelOneTag = createTag(levelOne, SCRIPT);
     head.appendChild(levelOneTag);
-
-    const levelTwoTag: HTMLScriptElement = createTag(levelTwo, SCRIPT) as HTMLScriptElement;
+    const levelTwoTag = createTag(levelTwo, SCRIPT);
     head.appendChild(levelTwoTag);
-
-    const levelThreeTag: HTMLScriptElement = createTag(levelThree, SCRIPT) as HTMLScriptElement;
+    const levelThreeTag = createTag(levelThree, SCRIPT);
     head.appendChild(levelThreeTag);
-
     // order matters, we call the main function at the very end
-    const startUpTag: HTMLScriptElement = createTag(startUp, SCRIPT) as HTMLScriptElement;
+    const startUpTag = createTag(startUp, SCRIPT);
     head.appendChild(startUpTag);
 })();
+//# sourceMappingURL=content-enhancer.js.map
