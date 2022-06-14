@@ -1,9 +1,8 @@
 (async () => {
-    originalHref = location.href;
-    setNextSearchResultsHref(document);
+    const nextSearchResultsHref: string= getNextSearchResultsHref(document);
 
     // collect the thumbnails before the html element is removed
-    let searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(document);
+    const searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(document, nextSearchResultsHref);
 
     // set up the html
     const contentEnhancers: NodeListOf<HTMLScriptElement> = document.querySelectorAll(".content-enhancer") as NodeListOf<HTMLScriptElement>;

@@ -2,9 +2,13 @@
 const LOOK_AHEAD = "1000%"; // look ahead 10 screens
 
 // logic
-let retry: boolean = true; // do we retry a request every 5 seconds?
-let nextSearchResultsHref: string;
-let originalHref: string;
+const DATA_SRC = "data-src";
+const DATA_CFSRC = "data-cfsrc";
+const DATA_HREF = "data-href";
+const DATA_DURATION = "data-duration";
+const DATA_NEXT_HREF = "data-next-href";
+const originalHref: string = location.href;
+
 let currentChapterHref: string;
 
 // string names
@@ -18,10 +22,6 @@ const EPH_NUM = "eph-num";
 const LAST_READ_1 = "lastRead1";
 const LAST_READ_2 = "lastRead2";
 const LAST_AVAILABLE_2 = "last-available-2";
-const DATA_SRC = "data-src";
-const DATA_CFSRC = "data-cfsrc";
-const DATA_HREF = "data-href";
-const DATA_DURATION = "data-duration";
 const EMPTY_STRING = "";
 const ONCLICK = "onclick";
 const CLASS = "class";
@@ -36,7 +36,8 @@ const KISSJAV: string = "kissjav";
 const NHENTAI: string = "nhentai";
 const ASURASCANS: string = "asurascans";
 
-function setNextSearchResultsHref(currentDocument: Document): void {
+function getNextSearchResultsHref(currentDocument: Document): string {
+    let nextSearchResultsHref = EMPTY_STRING;
     let anchor: HTMLAnchorElement = null;
     if (originalHref.includes(TOKYOMOTION)) {
         anchor = currentDocument.querySelector(".prevnext") as HTMLAnchorElement;
@@ -47,11 +48,11 @@ function setNextSearchResultsHref(currentDocument: Document): void {
     } else if (originalHref.includes(ASURASCANS)) {
         anchor = currentDocument.querySelector(".r") as HTMLAnchorElement;
     }
-    if (anchor === null) {
-        nextSearchResultsHref = EMPTY_STRING;
-    } else {
+    if (anchor !== null) {
         nextSearchResultsHref = anchor.href;
     }
+
+    return nextSearchResultsHref;
 }
 
 function getThumbnailList(responseDocument: Document) {
@@ -113,10 +114,11 @@ function setSearchResultsThumbnails(thumbnail: HTMLElement, searchResultsThumbna
     }
 }
 
-function getSearchResultsThumbnails(responseDocument: Document): HTMLImageElement[] {
+function getSearchResultsThumbnails(responseDocument: Document, nextSearchResultsHref: string): HTMLImageElement[] {
     const searchResultsThumbnails: HTMLImageElement[] = [];
     const thumbnailList = getThumbnailList(responseDocument);
     for (const thumbnail of thumbnailList) {
+        thumbnail.setAttribute(DATA_NEXT_HREF, nextSearchResultsHref);
         setSearchResultsThumbnails(thumbnail, searchResultsThumbnails);
     }
 
@@ -139,8 +141,8 @@ function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorEl
     thumbnails.push(thumbnail);
 }
 
-async function getResponseDocument(href: string): Promise<Document> {
-    const response: Response = await getResponse(href);
+async function getResponseDocument(href: string, retry: boolean = true): Promise<Document> {
+    const response: Response = await getResponse(href, retry);
     let returnedDocument: Document = null;
     if (response !== null) {
         const text: string = await response.text();
@@ -154,7 +156,7 @@ async function waitRandomly(minMilliseconds: number, maxMilliseconds: number): P
     await waitFor(Math.floor(minMilliseconds + Math.random() * (maxMilliseconds - minMilliseconds + 1)));
 }
 
-async function getResponse(href: string): Promise<Response> {
+async function getResponse(href: string, retry: boolean): Promise<Response> {
     if (originalHref.includes(NHENTAI)) {
         await waitRandomly(0, 10000);
     }
@@ -168,7 +170,7 @@ async function getResponse(href: string): Promise<Response> {
     } else {
         // wait between 1 and 5 seconds
         await waitRandomly(5000, 10000);
-        returnedResponse = await getResponse(href);
+        returnedResponse = await getResponse(href, true);
     }
 
     return returnedResponse;
@@ -255,14 +257,12 @@ function observeTargets() {
                 const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
                 observer.unobserve(entryTarget);
                 entryTarget.removeAttribute(CLASS);
-                if (nextSearchResultsHref !== EMPTY_STRING) {
+                const href: string = entryTarget.getAttribute(DATA_NEXT_HREF);
+                if (href !== EMPTY_STRING) {
                     const levelOneContainer: HTMLDivElement = document.getElementById(L1_CONTAINER_ID) as HTMLDivElement;
-
-                    // get the search results thumbnails
-                    const searchResultsDocument: Document = await getResponseDocument(nextSearchResultsHref);
-                    const searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(searchResultsDocument);
-                    // set the next href
-                    setNextSearchResultsHref(searchResultsDocument);
+                    const searchResultsDocument: Document = await getResponseDocument(href);
+                    const nextSearchResultsHref: string = getNextSearchResultsHref(searchResultsDocument);
+                    const searchResultsThumbnails: HTMLImageElement[] = getSearchResultsThumbnails(searchResultsDocument, nextSearchResultsHref);
                     observeLastImage(searchResultsThumbnails, THUMBNAIL);
                     await loadThumbnail(searchResultsThumbnails, levelOneContainer);
                 }

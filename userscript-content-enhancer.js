@@ -170,9 +170,12 @@ video {
     const levelOne = `// settings
 const LOOK_AHEAD = "1000%"; // look ahead 10 screens
 // logic
-let retry = true; // do we retry a request every 5 seconds?
-let nextSearchResultsHref;
-let originalHref;
+const DATA_SRC = "data-src";
+const DATA_CFSRC = "data-cfsrc";
+const DATA_HREF = "data-href";
+const DATA_DURATION = "data-duration";
+const DATA_NEXT_HREF = "data-next-href";
+const originalHref = location.href;
 let currentChapterHref;
 // string names
 const L1_CONTAINER_ID = "l1-container";
@@ -185,10 +188,6 @@ const EPH_NUM = "eph-num";
 const LAST_READ_1 = "lastRead1";
 const LAST_READ_2 = "lastRead2";
 const LAST_AVAILABLE_2 = "last-available-2";
-const DATA_SRC = "data-src";
-const DATA_CFSRC = "data-cfsrc";
-const DATA_HREF = "data-href";
-const DATA_DURATION = "data-duration";
 const EMPTY_STRING = "";
 const ONCLICK = "onclick";
 const CLASS = "class";
@@ -201,7 +200,8 @@ const TOKYOMOTION = "tokyomotion";
 const KISSJAV = "kissjav";
 const NHENTAI = "nhentai";
 const ASURASCANS = "asurascans";
-function setNextSearchResultsHref(currentDocument) {
+function getNextSearchResultsHref(currentDocument) {
+    let nextSearchResultsHref = EMPTY_STRING;
     let anchor = null;
     if (originalHref.includes(TOKYOMOTION)) {
         anchor = currentDocument.querySelector(".prevnext");
@@ -215,12 +215,10 @@ function setNextSearchResultsHref(currentDocument) {
     else if (originalHref.includes(ASURASCANS)) {
         anchor = currentDocument.querySelector(".r");
     }
-    if (anchor === null) {
-        nextSearchResultsHref = EMPTY_STRING;
-    }
-    else {
+    if (anchor !== null) {
         nextSearchResultsHref = anchor.href;
     }
+    return nextSearchResultsHref;
 }
 function getThumbnailList(responseDocument) {
     const thumbnailList = [];
@@ -284,10 +282,11 @@ function setSearchResultsThumbnails(thumbnail, searchResultsThumbnails) {
         pushThumbnail(levelOneThumbnail, levelTwoHref, "loadLevelTwo", searchResultsThumbnails, "l1-thumbnail");
     }
 }
-function getSearchResultsThumbnails(responseDocument) {
+function getSearchResultsThumbnails(responseDocument, nextSearchResultsHref) {
     const searchResultsThumbnails = [];
     const thumbnailList = getThumbnailList(responseDocument);
     for (const thumbnail of thumbnailList) {
+        thumbnail.setAttribute(DATA_NEXT_HREF, nextSearchResultsHref);
         setSearchResultsThumbnails(thumbnail, searchResultsThumbnails);
     }
     return searchResultsThumbnails;
@@ -305,8 +304,8 @@ function pushThumbnail(levelThumbnail, levelHref, functionName, thumbnails, clas
     }
     thumbnails.push(thumbnail);
 }
-async function getResponseDocument(href) {
-    const response = await getResponse(href);
+async function getResponseDocument(href, retry = true) {
+    const response = await getResponse(href, retry);
     let returnedDocument = null;
     if (response !== null) {
         const text = await response.text();
@@ -317,7 +316,7 @@ async function getResponseDocument(href) {
 async function waitRandomly(minMilliseconds, maxMilliseconds) {
     await waitFor(Math.floor(minMilliseconds + Math.random() * (maxMilliseconds - minMilliseconds + 1)));
 }
-async function getResponse(href) {
+async function getResponse(href, retry) {
     if (originalHref.includes(NHENTAI)) {
         await waitRandomly(0, 10000);
     }
@@ -333,7 +332,7 @@ async function getResponse(href) {
     else {
         // wait between 1 and 5 seconds
         await waitRandomly(5000, 10000);
-        returnedResponse = await getResponse(href);
+        returnedResponse = await getResponse(href, true);
     }
     return returnedResponse;
 }
@@ -414,13 +413,12 @@ function observeTargets() {
                 const entryTarget = entry.target;
                 observer.unobserve(entryTarget);
                 entryTarget.removeAttribute(CLASS);
-                if (nextSearchResultsHref !== EMPTY_STRING) {
+                const href = entryTarget.getAttribute(DATA_NEXT_HREF);
+                if (href !== EMPTY_STRING) {
                     const levelOneContainer = document.getElementById(L1_CONTAINER_ID);
-                    // get the search results thumbnails
-                    const searchResultsDocument = await getResponseDocument(nextSearchResultsHref);
-                    const searchResultsThumbnails = getSearchResultsThumbnails(searchResultsDocument);
-                    // set the next href
-                    setNextSearchResultsHref(searchResultsDocument);
+                    const searchResultsDocument = await getResponseDocument(href);
+                    const nextSearchResultsHref = getNextSearchResultsHref(searchResultsDocument);
+                    const searchResultsThumbnails = getSearchResultsThumbnails(searchResultsDocument, nextSearchResultsHref);
                     observeLastImage(searchResultsThumbnails, THUMBNAIL);
                     await loadThumbnail(searchResultsThumbnails, levelOneContainer);
                 }
@@ -805,7 +803,6 @@ function goToLevelTwo(backButton) {
     document.getElementById(backButton.parentElement.id).remove(); // destroy level 3
     // stop requests
     breakLoop = true;
-    retry = true;
     // update level 2 chapter information
     const lastRead = document.getElementById(currentChapterHref);
     lastRead.innerText = getTimeAgo(Date.now() + "");
@@ -858,9 +855,9 @@ async function loadHMangaImage(levelThreeContainer) {
         });
     }
 }
-async function getAsImages(href) {
+async function getAsImages(href, retry = true) {
     const images = [];
-    const chapter = await getResponseDocument(href);
+    const chapter = await getResponseDocument(href, retry);
     if (chapter !== null) {
         const viewports = [];
         const readerAreaChildren = chapter.getElementById("readerarea").children;
@@ -926,8 +923,7 @@ async function loadNhMangaImage(images, levelThreeContainer, index = 0) {
                     observer.unobserve(entryTarget);
                     entryTarget.removeAttribute(CLASS);
                     const nextChapterHref = getNextChapterHref(images);
-                    retry = false;
-                    const nextChapterImages = await getAsImages(nextChapterHref);
+                    const nextChapterImages = await getAsImages(nextChapterHref, false);
                     if (nextChapterImages.length > 0) {
                         observeLastImage(nextChapterImages, IMAGE);
                         await loadNhMangaImage(nextChapterImages, levelThreeContainer);
@@ -967,10 +963,9 @@ async function loadNhMangaImage(images, levelThreeContainer, index = 0) {
 }
 //# sourceMappingURL=level3.js.map`;
     const startUp = `(async () => {
-    originalHref = location.href;
-    setNextSearchResultsHref(document);
+    const nextSearchResultsHref = getNextSearchResultsHref(document);
     // collect the thumbnails before the html element is removed
-    let searchResultsThumbnails = getSearchResultsThumbnails(document);
+    const searchResultsThumbnails = getSearchResultsThumbnails(document, nextSearchResultsHref);
     // set up the html
     const contentEnhancers = document.querySelectorAll(".content-enhancer");
     document.querySelector("body").parentElement.remove(); // destroy everything

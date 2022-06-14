@@ -54,7 +54,6 @@ function goToLevelTwo(backButton: HTMLDivElement): void {
 
     // stop requests
     breakLoop = true;
-    retry = true;
 
     // update level 2 chapter information
     const lastRead: HTMLSpanElement = document.getElementById(currentChapterHref) as HTMLSpanElement;
@@ -112,9 +111,9 @@ async function loadHMangaImage(levelThreeContainer: HTMLDivElement): Promise<voi
     }
 }
 
-async function getAsImages(href: string): Promise<HTMLImageElement[]> {
+async function getAsImages(href: string, retry: boolean = true): Promise<HTMLImageElement[]> {
     const images: HTMLImageElement[] = [];
-    const chapter: Document = await getResponseDocument(href);
+    const chapter: Document = await getResponseDocument(href, retry);
     if (chapter !== null) {
         const viewports: number[] = [];
         const readerAreaChildren: HTMLCollectionOf<Element> = chapter.getElementById("readerarea").children;
@@ -180,8 +179,7 @@ async function loadNhMangaImage(images: HTMLImageElement[], levelThreeContainer:
                     observer.unobserve(entryTarget);
                     entryTarget.removeAttribute(CLASS);
                     const nextChapterHref: string = getNextChapterHref(images);
-                    retry = false;
-                    const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref);
+                    const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref, false);
                     if (nextChapterImages.length > 0) {
                         observeLastImage(nextChapterImages, IMAGE);
                         await loadNhMangaImage(nextChapterImages, levelThreeContainer);
