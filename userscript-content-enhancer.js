@@ -56,7 +56,7 @@ video {
     position: absolute;
     bottom: 0;
     display: flex;
-    align-items: center;
+    align-items: end;
     width: 100%;
     font-family: sans-serif;
     color: white;
@@ -116,8 +116,17 @@ video {
     width: 50%;
 }
 
-.last-read-gallery {
+.last-read-gallery, .gallery-page {
     background-color: rgba(0, 0, 0, 0.5);
+}
+
+.last-read-gallery {
+    margin-right: auto;
+}
+
+.gallery-page {
+    margin-left: auto;
+    font-size: 2rem;
 }
 
 /* level 3 */
@@ -181,11 +190,8 @@ const DATA_DURATION = "data-duration";
 const DATA_NEXT_HREF = "data-next-href";
 const L1_CONTAINER_ID = "level-one-container";
 const L2_CONTAINER_ID = "level-two-container";
-const L3_CONTAINER_ID = "level-three-container";
 const LEVEL_ONE_THUMBNAIL_CONTAINER = "level-one-thumbnail-container";
-const LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
 const OBSERVE_THUMBNAIL = "observe-thumbnail";
-const OBSERVE_IMAGE = "observe-image";
 const EPH_NUM = "eph-num";
 const THUMBS = "thumbs";
 const LAST_READ_1 = "last-read-one";
@@ -197,7 +203,6 @@ const SPACE = " ";
 const HYPHEN = "-";
 const PERIOD = ".";
 const CLASS = "class";
-const BLOCK = "block";
 const FLEX = "flex";
 const NONE = "none";
 const LOADING___ = "Loading...";
@@ -614,6 +619,8 @@ function getTime(timeAgo, difference, factor, singular, plural) {
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
 const LOADING = "loading";
+const LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
+const BLOCK = "block";
 async function loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
     if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
         await loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition);
@@ -731,6 +738,25 @@ async function loadManga(searchResultsThumbnailContainer, levelOneScrollPosition
     const backButton = createTagWithId("div", "go-to-level-one");
     backButton.className = "go-back-manga";
     backButton.onclick = () => {
+        // update level one chapter information
+        const levelThreeHref = levelTwoContainer.getAttribute(DATA_LEVEL_THREE_HREF);
+        if (levelThreeHref !== null) {
+            const lastRead = document.getElementById(levelThreeHref);
+            let lastReadTwoInnerText;
+            if (ORIGINAL_HREF.includes(NHENTAI)) {
+                const parts = levelThreeHref.split("/");
+                lastReadTwoInnerText = "Page " + parts[parts.length - 2]; // the penultimate part
+            }
+            else if (ORIGINAL_HREF.includes(ASURASCANS)) {
+                const chapterButton = lastRead.parentElement.parentElement.getElementsByTagName("button")[0];
+                lastReadTwoInnerText = chapterButton.innerText;
+            }
+            const lastReadOne = document.getElementById(LAST_READ_1 + levelTwoHref);
+            lastReadOne.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
+            const lastReadTwo = document.getElementById(LAST_READ_2 + levelTwoHref);
+            lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
+            levelTwoContainer.removeAttribute(DATA_LEVEL_THREE_HREF);
+        }
         document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
         levelTwoContainer.remove(); // destroy level 2
         window.scrollTo({ top: levelOneScrollPosition });
@@ -753,7 +779,8 @@ async function loadHManga(levelTwoContainer, mangaDocument) {
     const galleryThumbnailsCollection = mangaDocument.querySelector(PERIOD + THUMBS).children;
     const galleryThumbnailsList = [];
     galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
-    for (const galleryThumbnailElement of galleryThumbnailsList) {
+    for (let i = 0; i < galleryThumbnailsList.length; i++) {
+        const galleryThumbnailElement = galleryThumbnailsList[i];
         const levelThreeAnchor = galleryThumbnailElement.children[0];
         const levelTwoThumbnail = levelThreeAnchor.children[0];
         const thumbnailContainer = createTagWithClassName("div", LEVEL_TWO_THUMBNAIL_CONTAINER);
@@ -768,17 +795,10 @@ async function loadHManga(levelTwoContainer, mangaDocument) {
         // add the last read information next to the button
         const lastReadContainer = createTagWithClassName("div", "latest-container");
         const lastRead = createTagWithClassName("span", "last-read-gallery");
-        lastRead.id = levelThreeHref;
-        const lastReadString = localStorage.getItem(levelThreeHref);
-        let lastReadInnerText;
-        if (lastReadString === null) {
-            lastReadInnerText = "Never read";
-        }
-        else {
-            lastReadInnerText = getTimeAgo(lastReadString);
-        }
-        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
-        lastReadContainer.appendChild(lastRead);
+        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
+        const pageNumber = createTagWithClassName("span", "gallery-page");
+        pageNumber.innerText = (i + 1) + "";
+        lastReadContainer.appendChild(pageNumber);
         thumbnailContainer.appendChild(lastReadContainer);
         levelTwoThumbnailContainers.push(thumbnailContainer);
     }
@@ -790,6 +810,19 @@ function removeExtraDiv() {
     if (removePotential.getAttribute("style").length === 80) {
         removePotential.remove();
     }
+}
+function appendLastRead(lastRead, levelThreeHref, lastReadContainer) {
+    lastRead.id = levelThreeHref;
+    const lastReadString = localStorage.getItem(levelThreeHref);
+    let lastReadInnerText;
+    if (lastReadString === null) {
+        lastReadInnerText = "Never read";
+    }
+    else {
+        lastReadInnerText = getTimeAgo(lastReadString);
+    }
+    lastRead.innerText = hyphenateLongWord(lastReadInnerText);
+    lastReadContainer.appendChild(lastRead);
 }
 function loadNhManga(levelTwoContainer, mangaDocument) {
     levelTwoContainer.style.flexDirection = "column";
@@ -816,24 +849,17 @@ function loadNhManga(levelTwoContainer, mangaDocument) {
         // add the last read information next to the button
         const lastReadContainer = createTagWithClassName("div", "last-read-container");
         const lastRead = createTagWithClassName("span", "last-read");
-        lastRead.id = levelThreeHref;
-        const lastReadString = localStorage.getItem(levelThreeHref);
-        let lastReadInnerText;
-        if (lastReadString === null) {
-            lastReadInnerText = "Never read";
-        }
-        else {
-            lastReadInnerText = getTimeAgo(lastReadString);
-        }
-        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
-        lastReadContainer.appendChild(lastRead);
+        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
         chapterContainer.appendChild(lastReadContainer);
         levelTwoContainer.appendChild(chapterContainer);
     }
 }
 //# sourceMappingURL=level2.js.map
-let breakLoop = false;
+let breakLoop;
+const OBSERVE_IMAGE = "observe-image";
+const L3_CONTAINER_ID = "level-three-container";
 async function loadLevelThree(elementContainer, levelTwoScrollPosition, infoClicked = false) {
+    breakLoop = false;
     window.scrollTo({ top: 0 });
     // create level 3
     const levelTwoContainer = document.getElementById(L2_CONTAINER_ID);
@@ -853,6 +879,7 @@ async function loadLevelThree(elementContainer, levelTwoScrollPosition, infoClic
         // update level two chapter information
         const lastRead = document.getElementById(levelThreeHref);
         lastRead.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
+        levelTwoContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
         // scroll to level two scroll position
         window.scrollTo({ top: levelTwoScrollPosition });
     };
@@ -879,9 +906,8 @@ async function loadLevelThree(elementContainer, levelTwoScrollPosition, infoClic
         await loadHMangaImage(levelThreeContainer);
     }
     else if (ORIGINAL_HREF.includes(ASURASCANS)) {
-        // const images: HTMLImageElement[] = await getAsImages(levelThreeHref);
-        // setLastImageClassName(images, OBSERVE_IMAGE);
-        // await loadNhMangaImage(images, levelThreeContainer);
+        const images = await getNhMangaImages(levelThreeHref);
+        await loadNhMangaImage(images, levelThreeContainer);
     }
 }
 async function loadHMangaImage(levelThreeContainer) {
@@ -909,10 +935,10 @@ async function loadHMangaImage(levelThreeContainer) {
         levelThreeImage.onerror = async () => {
             await onImageLoadError(levelThreeImage);
         };
-        observeImage(levelThreeImage);
+        observeHMangaImage(levelThreeImage);
     }
 }
-function observeImage(levelThreeImage) {
+function observeHMangaImage(levelThreeImage) {
     // observe the image
     const setInfo = (entries) => {
         entries.forEach(async (entry) => {
@@ -929,118 +955,118 @@ function observeImage(levelThreeImage) {
     const infoObserver = new IntersectionObserver(setInfo, infoOptions);
     infoObserver.observe(levelThreeImage);
 }
-// function setLastImageClassName(images: HTMLImageElement[], className: string): void {
-//     const image: HTMLImageElement = images.pop();
-//     image.className = className;
-//     images.push(image);
-// }
-//
-// async function getAsImages(href: string, retry: boolean = true): Promise<HTMLImageElement[]> {
-//     const images: HTMLImageElement[] = [];
-//     const chapter: Document = await getResponseDocument(href, retry);
-//     if (chapter !== null) {
-//         const viewports: number[] = [];
-//         const readerAreaChildren: HTMLCollectionOf<Element> = chapter.getElementById("readerarea").children;
-//         for (let i: number = 0; i < readerAreaChildren.length; i++) {
-//             // find all the indexes of the children that have the class ai-viewport-2
-//             if (readerAreaChildren[i].getAttribute(CLASS)?.includes("ai-viewport-2")) {
-//                 viewports.push(i);
-//             }
-//         }
-//         viewports.pop(); // remove the last image (it's the credits image)
-//         for (const viewport of viewports) {
-//             // the index of the p tags are always 2 more than the index of the viewports
-//             // the p tag contains only the image
-//             const image: HTMLImageElement = readerAreaChildren[viewport + 2].children[0] as HTMLImageElement;
-//             const newImage: HTMLImageElement = new Image();
-//             newImage.setAttribute(DATA_LEVEL_TWO_HREF, href);
-//             newImage.setAttribute(DATA_SRC, image.getAttribute(DATA_CFSRC))
-//             images.push(newImage)
-//         }
-//     }
-//     return images;
-// }
-//
-// function getNextChapterHref(images: HTMLImageElement[]): string {
-//     const href: string = images[0].getAttribute(DATA_LEVEL_TWO_HREF);
-//     const parts: string[] = href.split(HYPHEN);
-//     const chapterString: string = "chapter";
-//     const indexOfChapter: number = parts.indexOf(chapterString);
-//     const end: string = parts[indexOfChapter + 1];
-//     const chapterNumber: string = end.substring(0, end.length - 1);
-//     let nextChapterNumber: number;
-//     if (end.includes(PERIOD)) { // we are on a half chapter, skip this and get the next one
-//         nextChapterNumber = parseInt(chapterNumber.split(PERIOD)[0]) + 1;
-//     } else {
-//         nextChapterNumber = parseInt(chapterNumber) + 1;
-//     }
-//     let nextChapterHref: string = EMPTY_STRING;
-//     for (let i: number = 0; i < indexOfChapter; i++) {
-//         nextChapterHref += parts[i] + HYPHEN;
-//     }
-//     nextChapterHref += chapterString + HYPHEN + nextChapterNumber + "/";
-//     return nextChapterHref;
-// }
-//
-// async function loadNhMangaImage(images: HTMLImageElement[], levelThreeContainer: HTMLDivElement, index: number = 0): Promise<void> {
-//     if (index < images.length && !breakLoop) {
-//         const image: HTMLImageElement = images[index];
-//         levelThreeContainer.append(image);
-//         image.src = image.getAttribute(DATA_SRC);
-//         image.onload = async () => {
-//             await loadNhMangaImage(images, levelThreeContainer, ++index);
-//         }
-//         image.onerror = async () => {
-//             await onImageLoadError(image);
-//         }
-//     } else if (index === images.length) {
-//         // load next chapter
-//         const nextChapter = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
-//             entries.forEach(async entry => {
-//                 if (entry.isIntersecting) {
-//                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-//                     observer.unobserve(entryTarget);
-//                     entryTarget.removeAttribute(CLASS);
-//                     const nextChapterHref: string = getNextChapterHref(images);
-//                     const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref, false);
-//                     if (nextChapterImages.length > 0) {
-//                         setLastImageClassName(nextChapterImages, OBSERVE_IMAGE);
-//                         await loadNhMangaImage(nextChapterImages, levelThreeContainer);
-//                     }
-//                 }
-//             })
-//         }
-//         const nextChapterOptions: {} = {
-//             root: null,
-//             rootMargin: LOOK_AHEAD
-//         }
-//         const nextChapterObserver: IntersectionObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
-//         const target: HTMLImageElement = document.querySelector(PERIOD + OBSERVE_IMAGE) as HTMLImageElement;
-//         nextChapterObserver.observe(target);
-//
-//         // set the info of the current image
-//         const setInfo = (entries: IntersectionObserverEntry[]) => {
-//             entries.forEach(async entry => {
-//                 if (entry.isIntersecting) {
-//                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-//                     const infoContent: HTMLSpanElement = document.querySelector(".info-content") as HTMLSpanElement;
-//                     currentChapterHref = entryTarget.getAttribute(DATA_LEVEL_TWO_HREF);
-//                     infoContent.innerText = currentChapterHref;
-//                     localStorage.setItem(currentChapterHref, Date.now() + "");
-//                 }
-//             })
-//         }
-//         const infoOptions: {} = {
-//             root: null,
-//             rootMargin: "0px"
-//         }
-//         const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
-//         const targets: NodeListOf<HTMLImageElement> = levelThreeContainer.querySelectorAll("img") as NodeListOf<HTMLImageElement>;
-//         targets.forEach(target => {
-//             infoObserver.observe(target);
-//         })
-//     }
-// }
+async function getNhMangaImages(levelThreeHref, retry = true) {
+    const images = [];
+    const chapter = await getResponseDocument(levelThreeHref, retry);
+    if (chapter !== null) {
+        const viewports = [];
+        const readerAreaChildren = chapter.getElementById("readerarea").children;
+        for (let i = 0; i < readerAreaChildren.length; i++) {
+            // find all the indexes of the children that have the class ai-viewport-2
+            if (readerAreaChildren[i].getAttribute(CLASS)?.includes("ai-viewport-2")) {
+                viewports.push(i);
+            }
+        }
+        viewports.pop(); // remove the last image (it's the credits image)
+        for (const viewport of viewports) {
+            // the index of the p tags are always 2 more than the index of the viewports
+            // the p tag contains only the image
+            const levelThreeImage = readerAreaChildren[viewport + 2].children[0];
+            const image = new Image();
+            image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+            image.setAttribute(DATA_SRC, levelThreeImage.getAttribute(DATA_CFSRC));
+            images.push(image);
+        }
+    }
+    if (images.length > 0) {
+        const image = images.pop();
+        image.className = OBSERVE_IMAGE;
+        images.push(image);
+    }
+    return images;
+}
+async function loadNhMangaImage(images, levelThreeContainer, index = 0) {
+    if (index < images.length && !breakLoop) {
+        const image = images[index];
+        levelThreeContainer.append(image);
+        image.src = image.getAttribute(DATA_SRC);
+        image.onload = async () => {
+            await loadNhMangaImage(images, levelThreeContainer, ++index);
+        };
+        image.onerror = async () => {
+            await onImageLoadError(image);
+        };
+        observeNhMangaImage(image);
+    }
+    else if (index === images.length) {
+        loadNextChapter(images, levelThreeContainer);
+    }
+}
+function observeNhMangaImage(image) {
+    // set the info of the current image
+    const setInfo = (entries) => {
+        entries.forEach(async (entry) => {
+            if (entry.isIntersecting) {
+                const observedImage = entry.target;
+                const infoContent = document.querySelector(".info-content");
+                const levelThreeHref = observedImage.getAttribute(DATA_LEVEL_THREE_HREF);
+                infoContent.innerText = levelThreeHref;
+                localStorage.setItem(levelThreeHref, Date.now() + "");
+            }
+        });
+    };
+    const infoOptions = {
+        root: null,
+        rootMargin: "0px"
+    };
+    const infoObserver = new IntersectionObserver(setInfo, infoOptions);
+    infoObserver.observe(image);
+}
+function loadNextChapter(images, levelThreeContainer) {
+    // load next chapter
+    const nextChapter = (entries, observer) => {
+        entries.forEach(async (entry) => {
+            if (entry.isIntersecting) {
+                const image = entry.target;
+                observer.unobserve(image);
+                image.removeAttribute(CLASS);
+                const nextChapterHref = getNextChapterHref(images);
+                const nextChapterImages = await getNhMangaImages(nextChapterHref, false);
+                if (nextChapterImages.length > 0) {
+                    await loadNhMangaImage(nextChapterImages, levelThreeContainer);
+                }
+            }
+        });
+    };
+    const nextChapterOptions = {
+        root: null,
+        rootMargin: LOOK_AHEAD
+    };
+    const nextChapterObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
+    const image = document.querySelector(PERIOD + OBSERVE_IMAGE);
+    nextChapterObserver.observe(image);
+}
+function getNextChapterHref(images) {
+    const href = images[0].getAttribute(DATA_LEVEL_TWO_HREF);
+    const parts = href.split(HYPHEN);
+    const chapterString = "chapter";
+    const indexOfChapter = parts.indexOf(chapterString);
+    const end = parts[indexOfChapter + 1];
+    const chapterNumber = end.substring(0, end.length - 1);
+    let nextChapterNumber;
+    if (end.includes(PERIOD)) { // we are on a half chapter, skip this and get the next one
+        nextChapterNumber = parseInt(chapterNumber.split(PERIOD)[0]) + 1;
+    }
+    else {
+        nextChapterNumber = parseInt(chapterNumber) + 1;
+    }
+    let nextChapterHref = EMPTY_STRING;
+    for (let i = 0; i < indexOfChapter; i++) {
+        nextChapterHref += parts[i] + HYPHEN;
+    }
+    nextChapterHref += chapterString + HYPHEN + nextChapterNumber + "/";
+    return nextChapterHref;
+}
 //# sourceMappingURL=level3.js.map
 
 document.documentElement.remove();
@@ -1057,4 +1083,4 @@ body.appendChild(levelOneContainer);
 const styleTag = createTagWithId("style", "content-enhancer-css");
 styleTag.innerHTML = CSS;
 head.appendChild(styleTag);
-createLevelOne().then(() => console.log("All search results loaded"));
+createLevelOne()

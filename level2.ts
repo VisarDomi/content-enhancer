@@ -1,6 +1,8 @@
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
 const LOADING = "loading";
+const LEVEL_TWO_THUMBNAIL_CONTAINER: string = "level-two-thumbnail-container";
+const BLOCK: string = "block";
 
 async function loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
     if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
@@ -127,6 +129,26 @@ async function loadManga(searchResultsThumbnailContainer: HTMLDivElement, levelO
     const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-one") as HTMLDivElement;
     backButton.className = "go-back-manga";
     backButton.onclick = () => {
+
+        // update level one chapter information
+        const levelThreeHref: string = levelTwoContainer.getAttribute(DATA_LEVEL_THREE_HREF);
+        if (levelThreeHref !== null) {
+            const lastRead: HTMLSpanElement = document.getElementById(levelThreeHref) as HTMLDivElement;
+            let lastReadTwoInnerText: string;
+            if (ORIGINAL_HREF.includes(NHENTAI)) {
+                const parts: string[] = levelThreeHref.split("/");
+                lastReadTwoInnerText = "Page " + parts[parts.length - 2]; // the penultimate part
+            } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
+                const chapterButton: HTMLButtonElement = lastRead.parentElement.parentElement.getElementsByTagName("button")[0];
+                lastReadTwoInnerText = chapterButton.innerText;
+            }
+            const lastReadOne: HTMLSpanElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
+            lastReadOne.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
+            const lastReadTwo: HTMLSpanElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
+            lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
+            levelTwoContainer.removeAttribute(DATA_LEVEL_THREE_HREF);
+        }
+
         document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
         levelTwoContainer.remove(); // destroy level 2
         window.scrollTo({top: levelOneScrollPosition});
@@ -152,7 +174,8 @@ async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Docu
     const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
     const galleryThumbnailsList: HTMLDivElement[] = [];
     galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
-    for (const galleryThumbnailElement of galleryThumbnailsList) {
+    for (let i = 0; i < galleryThumbnailsList.length; i++) {
+        const galleryThumbnailElement = galleryThumbnailsList[i];
         const levelThreeAnchor: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
         const levelTwoThumbnail: HTMLImageElement = levelThreeAnchor.children[0] as HTMLImageElement;
 
@@ -170,18 +193,13 @@ async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Docu
         // add the last read information next to the button
         const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
         const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read-gallery") as HTMLSpanElement;
-        lastRead.id = levelThreeHref;
-        const lastReadString: string = localStorage.getItem(levelThreeHref);
-        let lastReadInnerText: string;
-        if (lastReadString === null) {
-            lastReadInnerText = "Never read";
-        } else {
-            lastReadInnerText = getTimeAgo(lastReadString);
-        }
-        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
-        lastReadContainer.appendChild(lastRead);
-        thumbnailContainer.appendChild(lastReadContainer);
+        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
 
+        const pageNumber: HTMLSpanElement = createTagWithClassName("span", "gallery-page") as HTMLSpanElement;
+        pageNumber.innerText = (i + 1) + "";
+        lastReadContainer.appendChild(pageNumber);
+
+        thumbnailContainer.appendChild(lastReadContainer);
         levelTwoThumbnailContainers.push(thumbnailContainer);
     }
     await loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
@@ -193,6 +211,19 @@ function removeExtraDiv() {
     if (removePotential.getAttribute("style").length === 80) {
         removePotential.remove();
     }
+}
+
+function appendLastRead(lastRead: HTMLSpanElement, levelThreeHref: string, lastReadContainer: HTMLDivElement) {
+    lastRead.id = levelThreeHref;
+    const lastReadString: string = localStorage.getItem(levelThreeHref);
+    let lastReadInnerText: string;
+    if (lastReadString === null) {
+        lastReadInnerText = "Never read";
+    } else {
+        lastReadInnerText = getTimeAgo(lastReadString);
+    }
+    lastRead.innerText = hyphenateLongWord(lastReadInnerText);
+    lastReadContainer.appendChild(lastRead);
 }
 
 function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): void {
@@ -223,18 +254,9 @@ function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document)
         // add the last read information next to the button
         const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "last-read-container") as HTMLDivElement;
         const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read") as HTMLSpanElement;
-        lastRead.id = levelThreeHref;
-        const lastReadString: string = localStorage.getItem(levelThreeHref);
-        let lastReadInnerText: string;
-        if (lastReadString === null) {
-            lastReadInnerText = "Never read";
-        } else {
-            lastReadInnerText = getTimeAgo(lastReadString);
-        }
-        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
-        lastReadContainer.appendChild(lastRead);
-        chapterContainer.appendChild(lastReadContainer);
+        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
 
+        chapterContainer.appendChild(lastReadContainer);
         levelTwoContainer.appendChild(chapterContainer);
     }
 }
