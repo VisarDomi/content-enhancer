@@ -16,7 +16,9 @@ async function loadLevelThree(element: HTMLElement): Promise<void> {
     const levelThreeContainer: HTMLDivElement = createTagWithId("div", L3_CONTAINER_ID) as HTMLDivElement;
     document.querySelector("body").appendChild(levelThreeContainer);
     levelTwoContainer.style.display = NONE; // hide level 2
-    createBackButton(levelThreeContainer, "goToLevelTwo", "go-back");
+    const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-two") as HTMLDivElement;
+    backButton.className = "go-back";
+    backButton.onclick = goToLevelTwo;
 
     const info: HTMLDivElement = createTagWithClassName("div", "info") as HTMLDivElement;
     const clicker: HTMLDivElement = createTagWithClassName("div", "clicker") as HTMLDivElement;
@@ -38,17 +40,24 @@ async function loadLevelThree(element: HTMLElement): Promise<void> {
     levelThreeContainer.appendChild(clicker);
 
     // now it's time to load the images
-    if (originalHref.includes(NHENTAI)) {
+    if (ORIGINAL_HREF.includes(NHENTAI)) {
         nextImageHref = levelThreeHref;
         await loadHMangaImage(levelThreeContainer);
-    } else if (originalHref.includes(ASURASCANS)) {
+    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
         const images: HTMLImageElement[] = await getAsImages(levelThreeHref);
-        observeLastImage(images, IMAGE);
+        setLastImageClassName(images, OBSERVE_IMAGE);
         await loadNhMangaImage(images, levelThreeContainer);
     }
 }
 
-function goToLevelTwo(backButton: HTMLDivElement): void {
+function setLastImageClassName(images: HTMLImageElement[], className: string): void {
+    const image: HTMLImageElement = images.pop();
+    image.className = className;
+    images.push(image);
+}
+
+function goToLevelTwo(): void {
+    const backButton: HTMLDivElement = document.getElementById("go-to-level-two") as HTMLDivElement;
     document.getElementById(L2_CONTAINER_ID).style.display = FLEX; // show level 2
     document.getElementById(backButton.parentElement.id).remove(); // destroy level 3
 
@@ -137,7 +146,7 @@ async function getAsImages(href: string, retry: boolean = true): Promise<HTMLIma
     return images;
 }
 
-function getNextChapterHref(images: HTMLImageElement[]) {
+function getNextChapterHref(images: HTMLImageElement[]): string {
     const href: string = images[0].getAttribute(DATA_HREF);
     const separatorString: string = "-";
     const parts: string[] = href.split(separatorString);
@@ -181,7 +190,7 @@ async function loadNhMangaImage(images: HTMLImageElement[], levelThreeContainer:
                     const nextChapterHref: string = getNextChapterHref(images);
                     const nextChapterImages: HTMLImageElement[] = await getAsImages(nextChapterHref, false);
                     if (nextChapterImages.length > 0) {
-                        observeLastImage(nextChapterImages, IMAGE);
+                        setLastImageClassName(nextChapterImages, OBSERVE_IMAGE);
                         await loadNhMangaImage(nextChapterImages, levelThreeContainer);
                     }
                 }
@@ -192,7 +201,7 @@ async function loadNhMangaImage(images: HTMLImageElement[], levelThreeContainer:
             rootMargin: LOOK_AHEAD
         }
         const nextChapterObserver: IntersectionObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
-        const target: HTMLImageElement = document.querySelector("." + IMAGE) as HTMLImageElement;
+        const target: HTMLImageElement = document.querySelector("." + OBSERVE_IMAGE) as HTMLImageElement;
         nextChapterObserver.observe(target);
 
         // set the info of the current image
