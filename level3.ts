@@ -1,123 +1,118 @@
-// let level2ScrollPosition: number;
-// let nextImageHref: string;
-// let infoClicked: boolean;
-// let breakLoop: boolean; // don't send any more requests if you go back a level
-//
-// async function loadLevelThree(element: HTMLElement): Promise<void> {
-//     breakLoop = false;
-//
-//     // scroll to the top - order matters
-//     level2ScrollPosition = window.scrollY;
-//     window.scrollTo({top: 0});
-//
-//     // create level 3
-//     const levelTwoContainer: HTMLDivElement = document.getElementById(L2_CONTAINER_ID) as HTMLDivElement;
-//     const levelThreeHref: string = element.getAttribute(DATA_LEVEL_THREE_HREF);
-//     const levelThreeContainer: HTMLDivElement = createTagWithId("div", L3_CONTAINER_ID) as HTMLDivElement;
-//     document.querySelector("body").appendChild(levelThreeContainer);
-//     levelTwoContainer.style.display = NONE; // hide level 2
-//     const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-two") as HTMLDivElement;
-//     backButton.className = "go-back";
-//     backButton.onclick = goToLevelTwo;
-//
-//     const info: HTMLDivElement = createTagWithClassName("div", "info") as HTMLDivElement;
-//     const clicker: HTMLDivElement = createTagWithClassName("div", "clicker") as HTMLDivElement;
-//     infoClicked = false;
-//     clicker.onclick = () => {
-//         infoClicked = !infoClicked; // change the status
-//         if (infoClicked) {
-//             info.className = "info-clicked"
-//         } else {
-//             info.className = "info";
-//         }
-//     }
-//
-//     const span: HTMLSpanElement = createTagWithClassName("span", "info-content") as HTMLSpanElement;
-//     span.innerText = levelThreeHref;
-//
-//     info.appendChild(span);
-//     levelThreeContainer.appendChild(info);
-//     levelThreeContainer.appendChild(clicker);
-//
-//     // now it's time to load the images
-//     if (ORIGINAL_HREF.includes(NHENTAI)) {
-//         nextImageHref = levelThreeHref;
-//         await loadHMangaImage(levelThreeContainer);
-//     } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
-//         const images: HTMLImageElement[] = await getAsImages(levelThreeHref);
-//         setLastImageClassName(images, OBSERVE_IMAGE);
-//         await loadNhMangaImage(images, levelThreeContainer);
-//     }
-// }
-//
+let breakLoop: boolean = false;
+
+async function loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPosition: number, infoClicked = false): Promise<void> {
+    window.scrollTo({top: 0});
+
+    // create level 3
+    const levelTwoContainer: HTMLDivElement = document.getElementById(L2_CONTAINER_ID) as HTMLDivElement;
+    const levelThreeHref: string = elementContainer.getAttribute(DATA_LEVEL_THREE_HREF);
+    const levelThreeContainer: HTMLDivElement = createTagWithId("div", L3_CONTAINER_ID) as HTMLDivElement;
+    levelThreeContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+    document.querySelector("body").appendChild(levelThreeContainer);
+    levelTwoContainer.style.display = NONE; // hide level 2
+
+    // create the back button
+    const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-two") as HTMLDivElement;
+    backButton.className = "go-back";
+    backButton.onclick = () => {
+        // stop requests
+        breakLoop = true;
+
+        levelTwoContainer.style.display = FLEX; // show level 2
+        levelThreeContainer.remove(); // destroy level 3
+
+        // update level two chapter information
+        const lastRead: HTMLSpanElement = document.getElementById(levelThreeHref) as HTMLDivElement;
+        lastRead.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
+
+        // scroll to level two scroll position
+        window.scrollTo({top: levelTwoScrollPosition});
+    };
+    levelThreeContainer.appendChild(backButton);
+
+    // display info
+    const info: HTMLDivElement = createTagWithClassName("div", "info") as HTMLDivElement;
+    const clicker: HTMLDivElement = createTagWithClassName("div", "clicker") as HTMLDivElement;
+    clicker.onclick = () => {
+        infoClicked = !infoClicked; // change the status
+        if (infoClicked) {
+            info.className = "info-clicked"
+        } else {
+            info.className = "info";
+        }
+    }
+    const span: HTMLSpanElement = createTagWithClassName("span", "info-content") as HTMLSpanElement;
+    span.innerText = levelThreeHref;
+    info.appendChild(span);
+    levelThreeContainer.appendChild(info);
+    levelThreeContainer.appendChild(clicker);
+
+    // now it's time to load the images
+    if (ORIGINAL_HREF.includes(NHENTAI)) {
+        await loadHMangaImage(levelThreeContainer);
+    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
+        // const images: HTMLImageElement[] = await getAsImages(levelThreeHref);
+        // setLastImageClassName(images, OBSERVE_IMAGE);
+        // await loadNhMangaImage(images, levelThreeContainer);
+    }
+}
+
+
+async function loadHMangaImage(levelThreeContainer: HTMLDivElement): Promise<void> {
+    const levelThreeHref: string = levelThreeContainer.getAttribute(DATA_LEVEL_THREE_HREF);
+    if (levelThreeHref !== null && !breakLoop) {
+        const imageDocument: Document = await getResponseDocument(levelThreeHref);
+
+        // append the image to the container
+        const image: HTMLImageElement = imageDocument.getElementById("image-container").children[0].children[0] as HTMLImageElement;
+        const levelThreeImage: HTMLImageElement = new Image();
+        levelThreeImage.src = image.src;
+        levelThreeImage.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+        levelThreeContainer.appendChild(levelThreeImage);
+
+        // get the next image document href
+        const nextAnchor = imageDocument.querySelector(".next") as HTMLAnchorElement;
+        if (nextAnchor.href === EMPTY_STRING) { // there's always a .next, but .next.href can be empty
+            levelThreeContainer.removeAttribute(DATA_LEVEL_THREE_HREF);
+        } else {
+            levelThreeContainer.setAttribute(DATA_LEVEL_THREE_HREF, nextAnchor.href);
+        }
+
+        // load the image
+        levelThreeImage.onload = async () => {
+            await loadHMangaImage(levelThreeContainer);
+        }
+        levelThreeImage.onerror = async () => {
+            await onImageLoadError(levelThreeImage);
+        }
+
+        observeImage(levelThreeImage);
+    }
+}
+
+function observeImage(levelThreeImage: HTMLImageElement) {
+    // observe the image
+    const setInfo = (entries: IntersectionObserverEntry[]) => {
+        entries.forEach(async entry => {
+            if (entry.isIntersecting) {
+                const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                localStorage.setItem(entryTarget.getAttribute(DATA_LEVEL_THREE_HREF), Date.now() + "");
+            }
+        })
+    }
+    const infoOptions: {} = {
+        root: null,
+        rootMargin: "0px"
+    }
+    const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
+    infoObserver.observe(levelThreeImage);
+}
+
+
 // function setLastImageClassName(images: HTMLImageElement[], className: string): void {
 //     const image: HTMLImageElement = images.pop();
 //     image.className = className;
 //     images.push(image);
-// }
-//
-// function goToLevelTwo(): void {
-//     const backButton: HTMLDivElement = document.getElementById("go-to-level-two") as HTMLDivElement;
-//     document.getElementById(L2_CONTAINER_ID).style.display = FLEX; // show level 2
-//     document.getElementById(backButton.parentElement.id).remove(); // destroy level 3
-//
-//     // stop requests
-//     breakLoop = true;
-//
-//     // update level 2 chapter information
-//     const lastRead: HTMLSpanElement = document.getElementById(currentChapterHref) as HTMLSpanElement;
-//     lastRead.innerText = getTimeAgo(Date.now() + "");
-//
-//     // scroll to level 2 scroll position
-//     window.scrollTo({top: level2ScrollPosition});
-// }
-//
-// async function loadHMangaImage(levelThreeContainer: HTMLDivElement): Promise<void> {
-//     if (nextImageHref !== EMPTY_STRING && !breakLoop) {
-//         // get the next image
-//         const imageDocument: Document = await getResponseDocument(nextImageHref);
-//
-//         // append the image to the container
-//         const image: HTMLImageElement = imageDocument.getElementById("image-container").children[0].children[0] as HTMLImageElement;
-//         const levelThreeImage: HTMLImageElement = new Image();
-//         levelThreeImage.src = image.src;
-//         levelThreeContainer.appendChild(levelThreeImage);
-//
-//         // set the next image to be loaded
-//         const nextImage = imageDocument.querySelector(".next") as HTMLAnchorElement;
-//         if (nextImage === null) {
-//             nextImageHref = EMPTY_STRING;
-//         } else {
-//             nextImageHref = nextImage.href;
-//         }
-//
-//         // load the next image
-//         levelThreeImage.onload = async () => {
-//             await loadHMangaImage(levelThreeContainer);
-//         }
-//         levelThreeImage.onerror = async () => {
-//             await onImageLoadError(levelThreeImage);
-//         }
-//     } else {
-//         // save the info of the current image
-//         const setInfo = (entries: IntersectionObserverEntry[]) => {
-//             entries.forEach(async entry => {
-//                 if (entry.isIntersecting) {
-//                     const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-//                     localStorage.setItem(entryTarget.src, Date.now() + "");
-//                 }
-//             })
-//         }
-//         const infoOptions: {} = {
-//             root: null,
-//             rootMargin: "0px"
-//         }
-//         const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
-//         const targets: NodeListOf<HTMLImageElement> = levelThreeContainer.querySelectorAll("img") as NodeListOf<HTMLImageElement>;
-//         targets.forEach(target => {
-//             infoObserver.observe(target);
-//         })
-//     }
 // }
 //
 // async function getAsImages(href: string, retry: boolean = true): Promise<HTMLImageElement[]> {

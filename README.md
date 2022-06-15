@@ -50,9 +50,6 @@ Pagination - to be designed
 
 ## TODO:
 - use localstorage to mark clicked videos and chapters:
-  * for galleries, when on level 1, show the last read time and last read page
-  * for galleries, when on level 2, highlight the last read page
-  * for galleries, when on level 3, save the image in the viewport in localstorage
   * for videos, when on level 2, save a key value pair -> videoHref: lastTimeWatched
   * for videos, when on level 1, show lastTimeWatched
 - change the final merge to use OOP

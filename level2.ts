@@ -145,13 +145,10 @@ async function loadManga(searchResultsThumbnailContainer: HTMLDivElement, levelO
 async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): Promise<void> {
     levelTwoContainer.style.flexDirection = "row";
     levelTwoContainer.style.flexWrap = "wrap";
-    const levelThreeThumbnailContainers: HTMLDivElement[] = [];
+    const levelTwoThumbnailContainers: HTMLDivElement[] = [];
 
-    // remove a div that gets added from other scripts:
-    const removePotential: HTMLDivElement = document.body.children[1] as HTMLDivElement;
-    if (removePotential.getAttribute("style").length === 80) {
-        removePotential.remove();
-    }
+    removeExtraDiv();
+
     const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
     const galleryThumbnailsList: HTMLDivElement[] = [];
     galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
@@ -159,15 +156,43 @@ async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Docu
         const levelThreeAnchor: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
         const levelTwoThumbnail: HTMLImageElement = levelThreeAnchor.children[0] as HTMLImageElement;
 
+        const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", LEVEL_TWO_THUMBNAIL_CONTAINER) as HTMLDivElement;
+        const levelThreeHref: string = levelThreeAnchor.href;
+        thumbnailContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+        thumbnailContainer.onclick = async () => {
+            await loadLevelThree(thumbnailContainer, window.scrollY);
+        }
+
         const galleryThumbnail: HTMLImageElement = new Image();
         galleryThumbnail.setAttribute(DATA_SRC, levelTwoThumbnail.getAttribute(DATA_SRC));
-
-        const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", LEVEL_TWO_THUMBNAIL_CONTAINER) as HTMLDivElement;
-        thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelThreeAnchor.href);
         thumbnailContainer.append(galleryThumbnail);
-        levelThreeThumbnailContainers.push(thumbnailContainer);
+
+        // add the last read information next to the button
+        const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
+        const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read-gallery") as HTMLSpanElement;
+        lastRead.id = levelThreeHref;
+        const lastReadString: string = localStorage.getItem(levelThreeHref);
+        let lastReadInnerText: string;
+        if (lastReadString === null) {
+            lastReadInnerText = "Never read";
+        } else {
+            lastReadInnerText = getTimeAgo(lastReadString);
+        }
+        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
+        lastReadContainer.appendChild(lastRead);
+        thumbnailContainer.appendChild(lastReadContainer);
+
+        levelTwoThumbnailContainers.push(thumbnailContainer);
     }
-    await loadThumbnailContainer(levelThreeThumbnailContainers, levelTwoContainer);
+    await loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
+}
+
+function removeExtraDiv() {
+    // remove a div that gets added from other scripts:
+    const removePotential: HTMLDivElement = document.body.children[1] as HTMLDivElement;
+    if (removePotential.getAttribute("style").length === 80) {
+        removePotential.remove();
+    }
 }
 
 function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): void {
@@ -182,6 +207,10 @@ function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document)
         // add the chapter button
         const chapterContainer: HTMLDivElement = createTagWithClassName("div", "chapter-container") as HTMLDivElement;
         chapterContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+        chapterContainer.onclick = async () => {
+            await loadLevelThree(chapterContainer, window.scrollY);
+        }
+
         const chapterButton: HTMLButtonElement = createTagWithClassName("button", "chapter-button") as HTMLButtonElement;
         const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
         const maxChapterNameLength: number = 15;
@@ -194,12 +223,15 @@ function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document)
         // add the last read information next to the button
         const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "last-read-container") as HTMLDivElement;
         const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read") as HTMLSpanElement;
+        lastRead.id = levelThreeHref;
         const lastReadString: string = localStorage.getItem(levelThreeHref);
+        let lastReadInnerText: string;
         if (lastReadString === null) {
-            lastRead.innerText = "Never read";
+            lastReadInnerText = "Never read";
         } else {
-            lastRead.innerText = getTimeAgo(lastReadString);
+            lastReadInnerText = getTimeAgo(lastReadString);
         }
+        lastRead.innerText = hyphenateLongWord(lastReadInnerText);
         lastReadContainer.appendChild(lastRead);
         chapterContainer.appendChild(lastReadContainer);
 

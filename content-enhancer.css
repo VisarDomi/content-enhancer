@@ -99,7 +99,12 @@ video {
 }
 
 .level-two-thumbnail-container {
+    position: relative;
     width: 50%;
+}
+
+.last-read-gallery {
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 /* level 3 */

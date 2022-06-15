@@ -317,10 +317,10 @@ async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer: HTML
     const lastAvailableTwo: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
 
     if (ORIGINAL_HREF.includes(NHENTAI)) {
-        const galleryThumbnailsList: HTMLDivElement[] = [];
+        const thumbnails: HTMLDivElement[] = [];
         const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
-        galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailCollection));
-        updateLevelOneHManga(galleryThumbnailsList, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+        updateLevelOneHManga(thumbnails, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
     } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
         const chapters: HTMLDivElement[] = [];
         const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(PERIOD + EPH_NUM) as NodeListOf<HTMLDivElement>;
@@ -329,40 +329,26 @@ async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer: HTML
     }
 }
 
-function updateLevelOneHManga(galleryThumbnailList: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
-    lastAvailableOne.innerText = hyphenateChapterName("Last gallery page:");
-    lastAvailableTwo.innerText = hyphenateChapterName("Page " + galleryThumbnailList.length);
+function updateLevelOneHManga(thumbnails: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
+    lastAvailableOne.innerText = hyphenateLongWord("Last gallery page:");
+    lastAvailableTwo.innerText = hyphenateLongWord("Page " + thumbnails.length);
 
     // TODO: first save the information, then get back to this
-    const readGalleryThumbnails: { galleryThumbnailHref: string, lastRead: number }[] = [];
-    for (const galleryThumbnailElement of galleryThumbnailList) {
-        const levelThreeHref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
-        const levelTwoThumbnail: HTMLImageElement = levelThreeHref.children[0] as HTMLImageElement;
-    }
-}
-
-function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
-    lastAvailableOne.innerText = hyphenateChapterName("Last available:");
-
-    const readChapters: { chapterName: string, lastRead: number }[] = [];
+    const readThumbnails: { name: string, lastRead: number }[] = [];
     let lastReadFound: boolean = false;
-    for (let i = 0; i < chapters.length; i++) {
-        const chapter: HTMLDivElement = chapters[i];
-        const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
-        const chapterHref: string = anchor.href;
-        const lastRead: string = localStorage.getItem(chapterHref);
-        const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
-        const chapterName: string = span.innerText;
+    for (const galleryThumbnailElement of thumbnails) {
+        const levelThreeAnchor: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
+        const levelThreeHref: string = levelThreeAnchor.href;
+        const lastRead: string = localStorage.getItem(levelThreeHref);
         if (lastRead !== null) {
             lastReadFound = true;
+            const parts: string[] = levelThreeHref.split("/");
+            const name: string = parts[parts.length - 2]; // the penultimate part
             const last: number = parseInt(lastRead);
-            readChapters.push({
-                chapterName,
+            readThumbnails.push({
+                name: name,
                 lastRead: last
             })
-        }
-        if (i === 0) {
-            lastAvailableTwo.innerText = hyphenateChapterName(chapterName);
         }
     }
 
@@ -370,19 +356,57 @@ function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivE
     let lastReadTwoInnerText: string;
     if (lastReadFound) {
         // I caved in and got some help for this reduce function. It returns the object that has the greatest lastRead
-        const lastReadChapter: { chapterName: string, lastRead: number } = readChapters.reduce(getLastReadChapter);
-        lastReadOneInnerText = "Read: " + getTimeAgo(lastReadChapter.lastRead + "");
-        lastReadTwoInnerText = lastReadChapter.chapterName;
+        const lastReadThumbnail: { name: string, lastRead: number } = readThumbnails.reduce(getLastReadChapter);
+        lastReadOneInnerText = "Read: " + getTimeAgo(lastReadThumbnail.lastRead + "");
+        lastReadTwoInnerText = "Page " + lastReadThumbnail.name;
     } else {
         lastReadOneInnerText = "Never read before";
         lastReadTwoInnerText = "New";
     }
-    lastReadOne.innerText = hyphenateChapterName(lastReadOneInnerText);
-    lastReadTwo.innerText = hyphenateChapterName(lastReadTwoInnerText);
+    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
+    lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
+}
+
+function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
+    lastAvailableOne.innerText = hyphenateLongWord("Last available:");
+
+    const readChapters: { name: string, lastRead: number }[] = [];
+    let lastReadFound: boolean = false;
+    for (let i = 0; i < chapters.length; i++) {
+        const levelThreeAnchor: HTMLAnchorElement = chapters[i].children[0] as HTMLAnchorElement;
+        const span: HTMLSpanElement = levelThreeAnchor.children[0] as HTMLSpanElement;
+        const chapterName: string = span.innerText;
+        const lastRead: string = localStorage.getItem(levelThreeAnchor.href);
+        if (lastRead !== null) {
+            lastReadFound = true;
+            const last: number = parseInt(lastRead);
+            readChapters.push({
+                name: chapterName,
+                lastRead: last
+            })
+        }
+        if (i === 0) {
+            lastAvailableTwo.innerText = hyphenateLongWord(chapterName);
+        }
+    }
+
+    let lastReadOneInnerText: string;
+    let lastReadTwoInnerText: string;
+    if (lastReadFound) {
+        // I caved in and got some help for this reduce function. It returns the object that has the greatest lastRead
+        const lastReadChapter: { name: string, lastRead: number } = readChapters.reduce(getLastReadChapter);
+        lastReadOneInnerText = "Read: " + getTimeAgo(lastReadChapter.lastRead + "");
+        lastReadTwoInnerText = lastReadChapter.name;
+    } else {
+        lastReadOneInnerText = "Never read before";
+        lastReadTwoInnerText = "New";
+    }
+    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
+    lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
 
 }
 
-function hyphenateChapterName(chapterName: string): string {
+function hyphenateLongWord(chapterName: string): string {
     let hyphenatedChapterName: string = EMPTY_STRING;
     const maxWordLength = 9;
     for (const word of chapterName.split(SPACE)) {
@@ -396,8 +420,8 @@ function hyphenateChapterName(chapterName: string): string {
     return hyphenatedChapterName;
 }
 
-function getLastReadChapter(previous: { chapterName: string, lastRead: number }, current: { chapterName: string, lastRead: number }): { chapterName: string, lastRead: number } {
-    let returnedChapter: { chapterName: string, lastRead: number };
+function getLastReadChapter(previous: { name: string, lastRead: number }, current: { name: string, lastRead: number }): { name: string, lastRead: number } {
+    let returnedChapter: { name: string, lastRead: number };
     if (previous.lastRead > current.lastRead) {
         returnedChapter = previous;
     } else {
@@ -411,7 +435,7 @@ function getTimeAgo(unixTime: string): string {
     const now: number = Date.now();
     const before: number = parseInt(unixTime);
     let difference: number = (now - before) / 1000; // unix time is in milliseconds
-    let timeAgo: string = Math.floor(difference) + " seconds ago";
+    let timeAgo: string = Math.ceil(difference) + " seconds ago";
     const secondsPerMinute: number = 60;
     const minutesPerHour: number = 60;
     const hoursPerWeek: number = 24;
