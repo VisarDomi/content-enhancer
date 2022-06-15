@@ -183,7 +183,7 @@ function pushThumbnailContainer(searchResultsThumbnail: HTMLElement, levelOneThu
 
 function createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoAnchor: HTMLAnchorElement): HTMLDivElement {
     const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", THUMBNAIL_CONTAINER) as HTMLDivElement;
-    thumbnailContainer.id = levelTwoAnchor.href;
+    thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF ,levelTwoAnchor.href);
 
     const thumbnail: HTMLImageElement = new Image();
     if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
@@ -258,7 +258,7 @@ async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], con
             for (const levelOneThumbnailContainer of thumbnailContainers) {
                 await updateLevelOneThumbnailContainer(levelOneThumbnailContainer);
             }
-        } else if (container.id === L2_CONTAINER_ID) { // TODO
+        } else if (container.id === L2_CONTAINER_ID) { // TODO: the thumbnails of h manga
             // for (const levelTwoThumbnailContainer of thumbnailContainers) {
             //     await updateLevelTwoThumbnailContainer(levelTwoThumbnailContainer);
             // }
@@ -309,7 +309,7 @@ function observeThumbnail(levelOneContainer: HTMLDivElement) {
 }
 
 async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer: HTMLDivElement): Promise<void> {
-    const levelTwoHref: string = levelOneThumbnailContainer.id;
+    const levelTwoHref: string = levelOneThumbnailContainer.getAttribute(DATA_LEVEL_TWO_HREF);
     const mangaDocument: Document = await getResponseDocument(levelTwoHref);
     const lastReadOne: HTMLDivElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
     const lastReadTwo: HTMLDivElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
