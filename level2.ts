@@ -1,12 +1,62 @@
-let level1ScrollPosition: number;
-const chapters: HTMLDivElement[] = [];
-const galleryThumbnailsList: HTMLDivElement[] = [];
-
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
 const LOADING = "loading";
 
-function getLevelTwoVideo(searchResultsThumbnail: HTMLImageElement, background: HTMLDivElement): HTMLVideoElement {
+async function loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
+        await loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition);
+    } else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
+        await loadManga(searchResultsThumbnailContainer, levelOneScrollPosition);
+    }
+}
+
+
+async function loadVideo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
+    const levelTwoHref: string = searchResultsThumbnailContainer.id;
+    const levelTwoContainerId: string = levelTwoHref;
+    const levelOneContainer: HTMLDivElement = document.getElementById(L1_CONTAINER_ID) as HTMLDivElement;
+    const videoLoaded: boolean = (searchResultsThumbnailContainer.getAttribute(DATA_LOAD_STATUS) === LOADED);
+    const videoLoading: boolean = (searchResultsThumbnailContainer.getAttribute(DATA_LOAD_STATUS) === LOADING);
+    if (videoLoaded) {
+        window.scrollTo({top: 0});
+        searchResultsThumbnailContainer.removeAttribute(DATA_LOAD_STATUS); // remove the load status
+        levelOneContainer.style.display = NONE; // hide level 1
+        document.getElementById(levelTwoContainerId).style.display = BLOCK; // show level 2
+    } else if (!videoLoading) {
+        // after the first click, the video's load status is loading
+        searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADING);
+        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
+
+        // create level 2
+        const levelTwoContainer: HTMLDivElement = createTagWithId("div", levelTwoContainerId) as HTMLDivElement;
+        levelTwoContainer.style.display = NONE;
+        document.querySelector("body").appendChild(levelTwoContainer);
+
+        const levelTwoVideo = getLevelTwoVideo(searchResultsThumbnailContainer);
+        await setBestSource(levelTwoHref, levelTwoVideo, levelTwoContainer);
+
+        // the go back button
+        const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-one") as HTMLDivElement;
+        backButton.className = "go-back-video";
+        backButton.onclick = () => {
+            levelOneContainer.style.display = BLOCK; // show level 1
+            levelTwoContainer.remove(); // destroy level 2
+            window.scrollTo({top: levelOneScrollPosition});
+        }
+
+        // refresh should be at the end of the page
+        const refresh: HTMLButtonElement = createTagWithClassName("button", "refresh") as HTMLButtonElement;
+        refresh.type = "button";
+        refresh.onclick = () => {
+            levelTwoVideo.scrollIntoView();
+            levelTwoVideo.load();
+        };
+        refresh.innerText = "Reload the video";
+        levelTwoContainer.appendChild(refresh);
+    }
+}
+
+function getLevelTwoVideo(searchResultsThumbnailContainer: HTMLDivElement): HTMLVideoElement {
     // the video
     const levelTwoVideo: HTMLVideoElement = document.createElement("video");
     levelTwoVideo.controls = true;
@@ -14,15 +64,16 @@ function getLevelTwoVideo(searchResultsThumbnail: HTMLImageElement, background: 
     levelTwoVideo.playsInline = true;
     levelTwoVideo.muted = true;
     levelTwoVideo.onloadedmetadata = async () => {
-        levelTwoVideo.onloadedmetadata = null; // activate this function just once
+        // activate this function just once
+        levelTwoVideo.onloadedmetadata = null;
         // manually autoplay
         await waitFor(100);
         await levelTwoVideo.play();
         await waitFor(100);
         levelTwoVideo.pause();
         // the video is loaded
-        searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADED);
-        background.className = THUMBNAIL_CONTAINER + " " + LOADED;
+        searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADED);
+        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADED;
     }
     levelTwoVideo.onerror = async () => {
         await waitFor(randomNumber(5000, 10000));
@@ -61,54 +112,31 @@ async function setBestSource(levelTwoHref: string, levelTwoVideo: HTMLVideoEleme
     levelTwoContainer.appendChild(levelTwoVideo);
 }
 
-async function loadVideo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    const levelTwoHref: string = searchResultsThumbnail.getAttribute(DATA_HREF);
-    const levelTwoContainerId: string = levelTwoHref;
-    const background: HTMLDivElement = searchResultsThumbnail.parentElement as HTMLDivElement;
-    const videoLoaded: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADED);
-    const videoLoading: boolean = (searchResultsThumbnail.getAttribute(DATA_LOAD_STATUS) === LOADING);
-    if (videoLoaded) {
-        // save the position
-        level1ScrollPosition = window.scrollY;
-        window.scrollTo({top: 0});
 
-        // remove the load status
-        searchResultsThumbnail.removeAttribute(DATA_LOAD_STATUS);
-        background.className = THUMBNAIL_CONTAINER;
+async function loadManga(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
+    window.scrollTo({top: 0});
+    // create level 2
+    const levelTwoHref: string = searchResultsThumbnailContainer.id;
+    const levelTwoContainer: HTMLDivElement = createTagWithId("div", L2_CONTAINER_ID) as HTMLDivElement;
+    levelTwoContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoHref); // TODO: delete?
+    levelTwoContainer.style.display = FLEX;
+    document.querySelector("body").appendChild(levelTwoContainer);
+    document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
+    const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-one") as HTMLDivElement;
+    backButton.className = "go-back-manga";
+    backButton.onclick = () => {
+        document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
+        levelTwoContainer.remove(); // destroy level 2
+        window.scrollTo({top: levelOneScrollPosition});
+    }
+    levelTwoContainer.appendChild(backButton);
 
-        // hide the thumbnails and show the video container
-        document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
-        document.getElementById(levelTwoContainerId).style.display = BLOCK; // show level 2
-    } else if (videoLoading) {
-        // alert("wait for the video to load");
-    } else {
-        // after the first click, the video's load status is loading
-        searchResultsThumbnail.setAttribute(DATA_LOAD_STATUS, LOADING);
-        searchResultsThumbnail.className = "clicked"; // TODO: use localstorage to remember watched videos
-        background.className = THUMBNAIL_CONTAINER + " " + LOADING;
-
-        // create level 2
-        const levelTwoContainer: HTMLDivElement = createTagWithId("div", levelTwoContainerId) as HTMLDivElement;
-        levelTwoContainer.style.display = NONE;
-        document.querySelector("body").appendChild(levelTwoContainer);
-
-        const levelTwoVideo = getLevelTwoVideo(searchResultsThumbnail, background);
-        await setBestSource(levelTwoHref, levelTwoVideo, levelTwoContainer);
-
-        // the go back button
-        const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-one") as HTMLDivElement;
-        backButton.className = "go-back-video";
-        backButton.onclick = goToLevelOne;
-
-        // refresh should be at the end of the page
-        const refresh: HTMLButtonElement = createTagWithClassName("button", "refresh") as HTMLButtonElement;
-        refresh.type = "button";
-        refresh.onclick = () => {
-            levelTwoVideo.scrollIntoView();
-            levelTwoVideo.load();
-        };
-        refresh.innerText = "Reload the video";
-        levelTwoContainer.appendChild(refresh);
+    // get the gallery thumbnails
+    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
+    if (ORIGINAL_HREF.includes(NHENTAI)) {
+        await loadHManga(levelTwoContainer, mangaDocument);
+    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
+        loadNhManga(levelTwoContainer, mangaDocument);
     }
 }
 
@@ -116,8 +144,9 @@ async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Docu
     levelTwoContainer.style.flexDirection = "row";
     levelTwoContainer.style.flexWrap = "wrap";
     const galleryThumbnails: HTMLImageElement[] = [];
-    const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector("." + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
-    galleryThumbnailsList.splice(0, galleryThumbnailsList.length, ...Array.from(galleryThumbnailsCollection)); // replace the array
+    const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
+    const galleryThumbnailsList: HTMLDivElement[] = [];
+    galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
     for (const galleryThumbnailElement of galleryThumbnailsList) {
         const levelThreeHref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
         const levelTwoThumbnail: HTMLImageElement = levelThreeHref.children[0] as HTMLImageElement;
@@ -143,82 +172,38 @@ function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorEl
 
 function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): void {
     levelTwoContainer.style.flexDirection = "column";
-    const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
-    chapters.splice(0, chapters.length, ...Array.from(nodeChapters)); // replace the array
+    const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(PERIOD + EPH_NUM) as NodeListOf<HTMLDivElement>;
+    const chapters: HTMLDivElement[] = [];
+    chapters.splice(0, 0, ...Array.from(nodeChapters));
     for (const chapter of chapters) {
         const anchor: HTMLAnchorElement = chapter.children[0] as HTMLAnchorElement;
-        currentChapterHref = anchor.href;
+        const levelThreeHref = anchor.href;
 
         // add the chapter button
         const chapterContainer: HTMLDivElement = createTagWithClassName("div", "chapter-container") as HTMLDivElement;
+        chapterContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
         const chapterButton: HTMLButtonElement = createTagWithClassName("button", "chapter-button") as HTMLButtonElement;
         const span: HTMLSpanElement = anchor.children[0] as HTMLSpanElement;
-        chapterButton.innerText = span.innerText;
-        chapterButton.setAttribute(DATA_HREF, currentChapterHref);
+        const maxChapterNameLength: number = 15;
+        chapterButton.innerText = span.innerText.substring(0, maxChapterNameLength);
         chapterButton.onclick = async () => {
-            await loadLevelThree(chapterButton);
+            // await loadLevelThree(chapterContainer);
         }
         chapterContainer.appendChild(chapterButton);
 
         // add the last read information next to the button
         const lastReadContainer: HTMLDivElement = createTagWithClassName("div", "last-read-container") as HTMLDivElement;
         const lastRead: HTMLSpanElement = createTagWithClassName("span", "last-read") as HTMLSpanElement;
-        lastRead.id = currentChapterHref;
-        const lastReadString: string = localStorage.getItem(currentChapterHref);
+        lastRead.id = levelThreeHref;
+        const lastReadString: string = localStorage.getItem(levelThreeHref);
         if (lastReadString === null) {
             lastRead.innerText = "Never read";
         } else {
             lastRead.innerText = getTimeAgo(lastReadString);
         }
-
         lastReadContainer.appendChild(lastRead);
         chapterContainer.appendChild(lastReadContainer);
+
         levelTwoContainer.appendChild(chapterContainer);
     }
-}
-
-async function loadManga(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    // scroll to the top - order matters
-    level1ScrollPosition = window.scrollY;
-    window.scrollTo({top: 0});
-
-    // create level 2
-    const levelTwoHref: string = searchResultsThumbnail.getAttribute(DATA_HREF);
-    const levelTwoContainer: HTMLDivElement = createTagWithId("div", L2_CONTAINER_ID) as HTMLDivElement;
-    levelTwoContainer.setAttribute(DATA_HREF, levelTwoHref);
-    levelTwoContainer.style.display = FLEX;
-    document.querySelector("body").appendChild(levelTwoContainer);
-    document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
-    const backButton: HTMLDivElement = createTagWithId("div", "go-to-level-one") as HTMLDivElement;
-    backButton.className = "go-back-manga";
-    backButton.onclick = goToLevelOne;
-
-    // get the gallery thumbnails
-    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
-
-
-    if (ORIGINAL_HREF.includes(NHENTAI)) {
-        await loadHManga(levelTwoContainer, mangaDocument);
-    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
-        loadNhManga(levelTwoContainer, mangaDocument);
-    }
-}
-
-async function loadLevelTwo(searchResultsThumbnail: HTMLImageElement): Promise<void> {
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
-        await loadVideo(searchResultsThumbnail);
-    } else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
-        await loadManga(searchResultsThumbnail);
-    }
-}
-
-function goToLevelOne(): void {
-    const backButton: HTMLDivElement = document.getElementById("go-to-level-one") as HTMLDivElement;
-    const levelOneContainer: HTMLDivElement = document.getElementById(L1_CONTAINER_ID) as HTMLDivElement;
-    const levelTwoContainer: HTMLDivElement = backButton.parentElement as HTMLDivElement;
-    levelOneContainer.style.display = BLOCK; // show level 1
-    levelTwoContainer.remove(); // destroy level 2
-
-    // scroll to the first level position
-    window.scrollTo({top: level1ScrollPosition});
 }

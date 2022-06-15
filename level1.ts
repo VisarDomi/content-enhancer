@@ -1,37 +1,33 @@
-// settings
-const LOOK_AHEAD = "1000%"; // look ahead 10 screens
+const LOOK_AHEAD: string = "1000%"; // look ahead 10 screens
 
-// logic
-const DATA_SRC = "data-src";
-const DATA_CFSRC = "data-cfsrc";
-const DATA_HREF = "data-href";
-const DATA_DURATION = "data-duration";
-const DATA_NEXT_HREF = "data-next-href";
 const ORIGINAL_HREF: string = location.href;
-
-let currentChapterHref: string;
-
-// string names
+const DATA_SRC: string = "data-src";
+const DATA_CFSRC: string = "data-cfsrc";
+const DATA_LEVEL_TWO_HREF: string = "data-level-two-href";
+const DATA_LEVEL_THREE_HREF: string = "data-level-three-href";
+const DATA_DURATION: string = "data-duration";
+const DATA_NEXT_HREF: string = "data-next-href";
 const L1_CONTAINER_ID: string = "level-one-container";
 const L2_CONTAINER_ID: string = "level-two-container";
 const L3_CONTAINER_ID: string = "level-three-container";
 const THUMBNAIL_CONTAINER: string = "thumbnail-container";
-const OBSERVE_THUMBNAIL = "observe-thumbnail";
-const OBSERVE_IMAGE = "observe-image";
-const EPH_NUM = "eph-num";
-const THUMBS = "thumbs";
-const LAST_READ_1 = "last-read-one";
-const LAST_READ_2 = "last-read-two";
-const LAST_AVAILABLE_1 = "last-available-one";
-const LAST_AVAILABLE_2 = "last-available-two";
-const EMPTY_STRING = "";
-const CLASS = "class";
-const BLOCK = "block";
-const FLEX = "flex";
-const NONE = "none";
-const LOADING___ = "Loading...";
-
-// websites
+const OBSERVE_THUMBNAIL: string = "observe-thumbnail";
+const OBSERVE_IMAGE: string = "observe-image";
+const EPH_NUM: string = "eph-num";
+const THUMBS: string = "thumbs";
+const LAST_READ_1: string = "last-read-one";
+const LAST_READ_2: string = "last-read-two";
+const LAST_AVAILABLE_1: string = "last-available-one";
+const LAST_AVAILABLE_2: string = "last-available-two";
+const EMPTY_STRING: string = "";
+const SPACE: string = " ";
+const HYPHEN: string = "-";
+const PERIOD: string = ".";
+const CLASS: string = "class";
+const BLOCK: string = "block";
+const FLEX: string = "flex";
+const NONE: string = "none";
+const LOADING___: string = "Loading...";
 const TOKYOMOTION: string = "tokyomotion";
 const KISSJAV: string = "kissjav";
 const NHENTAI: string = "nhentai";
@@ -44,6 +40,49 @@ async function createLevelOne(): Promise<void> {
     const levelOneThumbnailContainers: HTMLDivElement[] = createLevelOneThumbnailContainers(searchResultsDocument);
     await loadThumbnailContainer(levelOneThumbnailContainers, document.getElementById(L1_CONTAINER_ID) as HTMLDivElement);
 }
+
+
+async function getResponseDocument(href: string, retry: boolean = true): Promise<Document> {
+    const response: Response = await getResponse(href, retry);
+    let returnedDocument: Document = null;
+    if (response !== null) {
+        const text: string = await response.text();
+        returnedDocument = new DOMParser().parseFromString(text, "text/html");
+    }
+
+    return returnedDocument;
+}
+
+async function getResponse(href: string, retry: boolean, failedHref: { href: string, waitTime: number } = {
+    href: EMPTY_STRING,
+    waitTime: 1000
+}): Promise<Response> {
+    const response: Response = await fetch(href);
+    let returnedResponse: Response = null;
+    const statusOk: number = 200;
+    if (response.status === statusOk) { // the base case, the response was successful
+        returnedResponse = response;
+    } else if (retry) {
+        failedHref["waitTime"] += randomNumber(0, 1000); // the base wait time is between one and two seconds
+        if (failedHref["href"] === href) { // the request has previously failed
+            failedHref["waitTime"] *= randomNumber(2, 3); // double the wait time (on average) for each failed attempt
+        }
+        failedHref["href"] = href; // save the failed request
+        await waitFor(failedHref["waitTime"]);
+        returnedResponse = await getResponse(href, true, failedHref);
+    }
+
+    return returnedResponse;
+}
+
+function randomNumber(start: number, end: number): number {
+    return Math.floor(start + Math.random() * (end - start));
+}
+
+async function waitFor(milliseconds: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 
 function setNextSearchResultsHref(currentDocument: Document): void {
     let nextSearchResultsHref = null;
@@ -69,6 +108,17 @@ function setNextSearchResultsHref(currentDocument: Document): void {
     }
 }
 
+
+function createLevelOneThumbnailContainers(searchResultsDocument: Document): HTMLDivElement[] {
+    const levelOneThumbnailContainers: HTMLDivElement[] = [];
+    const searchResultsThumbnails: HTMLElement[] = getSearchResultsThumbnails(searchResultsDocument);
+    for (const searchResultsThumbnail of searchResultsThumbnails) {
+        pushThumbnailContainer(searchResultsThumbnail, levelOneThumbnailContainers);
+    }
+
+    return levelOneThumbnailContainers;
+}
+
 function getSearchResultsThumbnails(responseDocument: Document): HTMLElement[] {
     const thumbnailCollection: HTMLElement[] = [];
     if (ORIGINAL_HREF.includes(TOKYOMOTION)) {
@@ -86,43 +136,6 @@ function getSearchResultsThumbnails(responseDocument: Document): HTMLElement[] {
     }
 
     return thumbnailCollection;
-}
-
-function createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoAnchor: HTMLAnchorElement): HTMLDivElement {
-    const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", THUMBNAIL_CONTAINER) as HTMLDivElement;
-    thumbnailContainer.id = levelTwoAnchor.href;
-
-    const thumbnail: HTMLImageElement = new Image();
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
-        const duration: HTMLDivElement = createTagWithClassName("div", "duration") as HTMLDivElement;
-        duration.innerText = levelOneThumbnail.getAttribute(DATA_DURATION);
-        thumbnailContainer.appendChild(duration);
-    } else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
-        const latestContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
-        const lastRead: HTMLDivElement = createTagWithClassName("div", "last-read-element") as HTMLDivElement;
-        const lastAvailable: HTMLDivElement = createTagWithClassName("div", "last-available-element") as HTMLDivElement;
-        const lastReadOne: HTMLDivElement = createTagWithId("div", LAST_READ_1 + levelTwoAnchor.href) as HTMLDivElement;
-        lastReadOne.innerText = LOADING___;
-        const lastReadTwo: HTMLDivElement = createTagWithId("div", LAST_READ_2 + levelTwoAnchor.href) as HTMLDivElement;
-        lastReadTwo.innerText = LOADING___;
-        const lastAvailableOne: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href) as HTMLDivElement;
-        lastAvailableOne.innerText = LOADING___;
-        const lastAvailableTwo: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href) as HTMLDivElement;
-        lastAvailableTwo.innerText = LOADING___;
-
-        lastRead.appendChild(lastReadOne);
-        lastRead.appendChild(lastReadTwo);
-        lastAvailable.appendChild(lastAvailableOne);
-        lastAvailable.appendChild(lastAvailableTwo);
-        latestContainer.appendChild(lastRead);
-        latestContainer.appendChild(lastAvailable);
-        thumbnailContainer.appendChild(latestContainer);
-    }
-
-    thumbnail.setAttribute(DATA_SRC, levelOneThumbnail.src);
-    thumbnailContainer.appendChild(thumbnail);
-
-    return thumbnailContainer;
 }
 
 function pushThumbnailContainer(searchResultsThumbnail: HTMLElement, levelOneThumbnailContainers: HTMLDivElement[]) {
@@ -168,42 +181,60 @@ function pushThumbnailContainer(searchResultsThumbnail: HTMLElement, levelOneThu
     }
 }
 
-function createLevelOneThumbnailContainers(searchResultsDocument: Document): HTMLDivElement[] {
-    const levelOneThumbnailContainers: HTMLDivElement[] = [];
-    const searchResultsThumbnails: HTMLElement[] = getSearchResultsThumbnails(searchResultsDocument);
-    for (const searchResultsThumbnail of searchResultsThumbnails) {
-        pushThumbnailContainer(searchResultsThumbnail, levelOneThumbnailContainers);
+function createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoAnchor: HTMLAnchorElement): HTMLDivElement {
+    const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", THUMBNAIL_CONTAINER) as HTMLDivElement;
+    thumbnailContainer.id = levelTwoAnchor.href;
+
+    const thumbnail: HTMLImageElement = new Image();
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
+        const duration: HTMLDivElement = createTagWithClassName("div", "duration") as HTMLDivElement;
+        duration.innerText = levelOneThumbnail.getAttribute(DATA_DURATION);
+        thumbnailContainer.appendChild(duration);
+    } else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
+        const latestContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
+        const lastRead: HTMLDivElement = createTagWithClassName("div", "last-read-element") as HTMLDivElement;
+        const lastAvailable: HTMLDivElement = createTagWithClassName("div", "last-available-element") as HTMLDivElement;
+        const lastReadOne: HTMLDivElement = createTagWithId("div", LAST_READ_1 + levelTwoAnchor.href) as HTMLDivElement;
+        lastReadOne.innerText = LOADING___;
+        const lastReadTwo: HTMLDivElement = createTagWithId("div", LAST_READ_2 + levelTwoAnchor.href) as HTMLDivElement;
+        lastReadTwo.innerText = LOADING___;
+        const lastAvailableOne: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href) as HTMLDivElement;
+        lastAvailableOne.innerText = LOADING___;
+        const lastAvailableTwo: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href) as HTMLDivElement;
+        lastAvailableTwo.innerText = LOADING___;
+
+        lastRead.appendChild(lastReadOne);
+        lastRead.appendChild(lastReadTwo);
+        lastAvailable.appendChild(lastAvailableOne);
+        lastAvailable.appendChild(lastAvailableTwo);
+        latestContainer.appendChild(lastRead);
+        latestContainer.appendChild(lastAvailable);
+        thumbnailContainer.appendChild(latestContainer);
     }
 
-    return levelOneThumbnailContainers;
+    thumbnail.setAttribute(DATA_SRC, levelOneThumbnail.src);
+    thumbnailContainer.appendChild(thumbnail);
+    thumbnailContainer.onclick = async () => {
+        await loadLevelTwo(thumbnailContainer, window.scrollY);
+    }
+
+    return thumbnailContainer;
 }
 
-function observeLevelOneThumbnails() {
-    const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
-        entries.forEach(async entry => {
-            if (entry.isIntersecting) {
-                const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-                observer.unobserve(entryTarget);
-                entryTarget.removeAttribute(CLASS);
-                const levelOneContainer: HTMLDivElement = document.getElementById(L1_CONTAINER_ID) as HTMLDivElement;
-                const href: string = levelOneContainer.getAttribute(DATA_NEXT_HREF);
-                if (href !== null) {
-                    const searchResultsDocument: Document = await getResponseDocument(href);
-                    setNextSearchResultsHref(searchResultsDocument);
-                    const levelOneThumbnailContainers: HTMLDivElement[] = createLevelOneThumbnailContainers(searchResultsDocument);
-                    await loadThumbnailContainer(levelOneThumbnailContainers, levelOneContainer);
-                }
-            }
-        })
-    }
-    const options: {} = {
-        root: null,
-        rootMargin: LOOK_AHEAD
-    }
-    const observer: IntersectionObserver = new IntersectionObserver(callback, options);
-    const target: HTMLImageElement = document.querySelector("." + OBSERVE_THUMBNAIL) as HTMLImageElement;
-    observer.observe(target);
+function createTagWithClassName(tagName: string, className: string): HTMLElement {
+    const createdElement: HTMLElement = document.createElement(tagName);
+    createdElement.className = className;
+
+    return createdElement;
 }
+
+function createTagWithId(tagName: string, id: string): HTMLElement {
+    const createdElement: HTMLElement = document.createElement(tagName);
+    createdElement.id = id;
+
+    return createdElement;
+}
+
 
 async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
     const thumbnailContainersLength = thumbnailContainers.length;
@@ -221,79 +252,19 @@ async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], con
             thumbnail.className = OBSERVE_THUMBNAIL;
         }
         container.appendChild(thumbnailContainer);
-    } else if (index === thumbnailContainersLength && container.id === L1_CONTAINER_ID) { // load new pages using the Intersection API - functional programming
-        observeLevelOneThumbnails();
-
-        for (const levelOneThumbnailContainer of thumbnailContainers) {
-            await updateThumbnailInformation(levelOneThumbnailContainer);
+    } else if (index === thumbnailContainersLength) {
+        if (container.id === L1_CONTAINER_ID) {
+            observeThumbnail(container);
+            for (const levelOneThumbnailContainer of thumbnailContainers) {
+                await updateLevelOneThumbnailContainer(levelOneThumbnailContainer);
+            }
+        } else if (container.id === L2_CONTAINER_ID) { // TODO
+            // for (const levelTwoThumbnailContainer of thumbnailContainers) {
+            //     await updateLevelTwoThumbnailContainer(levelTwoThumbnailContainer);
+            // }
         }
+
     }
-}
-
-async function updateThumbnailInformation(levelOneThumbnailContainer: HTMLDivElement): Promise<void> {
-    const levelTwoHref: string = levelOneThumbnailContainer.id;
-    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
-    const lastReadOne: HTMLDivElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
-    const lastReadTwo: HTMLDivElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
-    const lastAvailableOne: HTMLDivElement = document.getElementById(LAST_AVAILABLE_1 + levelTwoHref) as HTMLDivElement;
-    const lastAvailableTwo: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
-
-    if (ORIGINAL_HREF.includes(NHENTAI)) {
-        const galleryThumbnailsList: HTMLDivElement[] = [];
-        const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector("." + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
-        galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailCollection));
-        updateLevelOneHManga(galleryThumbnailsList, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
-    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
-        const chapters: HTMLDivElement[] = [];
-        const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll("." + EPH_NUM) as NodeListOf<HTMLDivElement>;
-        chapters.splice(0, 0, ...Array.from(nodeChapters));
-        updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
-    }
-}
-
-async function getResponseDocument(href: string, retry: boolean = true): Promise<Document> {
-    if (href === null) {
-        alert("href is null, check the code");
-        return null;
-    }
-    const response: Response = await getResponse(href, retry);
-    let returnedDocument: Document = null;
-    if (response !== null) {
-        const text: string = await response.text();
-        returnedDocument = new DOMParser().parseFromString(text, "text/html");
-    }
-
-    return returnedDocument;
-}
-
-function randomNumber(start: number, end: number): number {
-    return Math.floor(start + Math.random() * (end - start));
-}
-
-async function getResponse(href: string, retry: boolean, failedHref: { href: string, waitTime: number } = {
-    href: EMPTY_STRING,
-    waitTime: 1000
-}): Promise<Response> {
-    const response: Response = await fetch(href);
-    let returnedResponse: Response = null;
-    const statusOk: number = 200;
-    if (response.status === statusOk) { // the base case, the response was successful
-        returnedResponse = response;
-    } else if (retry) {
-        failedHref["waitTime"] += randomNumber(0, 1000); // the base wait time is between one and two seconds
-        if (failedHref["href"] === href) { // the request has previously failed
-            failedHref["waitTime"] *= randomNumber(2, 3); // double the wait time (on average) for each failed attempt
-        }
-        failedHref["href"] = href; // save the failed request
-        await waitFor(failedHref["waitTime"]);
-        returnedResponse = await getResponse(href, true, failedHref);
-    }
-
-    return returnedResponse;
-}
-
-async function waitFor(milliseconds: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 async function onImageLoadError(image: HTMLImageElement): Promise<void> {
@@ -309,6 +280,53 @@ async function onImageLoadError(image: HTMLImageElement): Promise<void> {
         imageSrc = imageSrc.substring(0, timeIndex) + time;
     }
     image.src = imageSrc;
+}
+
+function observeThumbnail(levelOneContainer: HTMLDivElement) {
+    const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+        entries.forEach(async entry => {
+            if (entry.isIntersecting) {
+                const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
+                observer.unobserve(entryTarget);
+                entryTarget.removeAttribute(CLASS);
+                const href: string = levelOneContainer.getAttribute(DATA_NEXT_HREF);
+                if (href !== null) {
+                    const searchResultsDocument: Document = await getResponseDocument(href);
+                    setNextSearchResultsHref(searchResultsDocument);
+                    const levelOneThumbnailContainers: HTMLDivElement[] = createLevelOneThumbnailContainers(searchResultsDocument);
+                    await loadThumbnailContainer(levelOneThumbnailContainers, levelOneContainer);
+                }
+            }
+        })
+    }
+    const options: {} = {
+        root: null,
+        rootMargin: LOOK_AHEAD
+    }
+    const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+    const target: HTMLImageElement = document.querySelector(PERIOD + OBSERVE_THUMBNAIL) as HTMLImageElement;
+    observer.observe(target);
+}
+
+async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer: HTMLDivElement): Promise<void> {
+    const levelTwoHref: string = levelOneThumbnailContainer.id;
+    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
+    const lastReadOne: HTMLDivElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
+    const lastReadTwo: HTMLDivElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
+    const lastAvailableOne: HTMLDivElement = document.getElementById(LAST_AVAILABLE_1 + levelTwoHref) as HTMLDivElement;
+    const lastAvailableTwo: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
+
+    if (ORIGINAL_HREF.includes(NHENTAI)) {
+        const galleryThumbnailsList: HTMLDivElement[] = [];
+        const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
+        galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+        updateLevelOneHManga(galleryThumbnailsList, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+    } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
+        const chapters: HTMLDivElement[] = [];
+        const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(PERIOD + EPH_NUM) as NodeListOf<HTMLDivElement>;
+        chapters.splice(0, 0, ...Array.from(nodeChapters));
+        updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+    }
 }
 
 function updateLevelOneHManga(galleryThumbnailList: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
@@ -348,25 +366,30 @@ function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivE
         }
     }
 
+    let lastReadOneInnerText: string;
+    let lastReadTwoInnerText: string;
     if (lastReadFound) {
         // I caved in and got some help for this reduce function. It returns the object that has the greatest lastRead
         const lastReadChapter: { chapterName: string, lastRead: number } = readChapters.reduce(getLastReadChapter);
-        lastReadOne.innerText = hyphenateChapterName("Read: " + getTimeAgo(lastReadChapter.lastRead + ""));
-        lastReadTwo.innerText = hyphenateChapterName(lastReadChapter.chapterName);
+        lastReadOneInnerText = "Read: " + getTimeAgo(lastReadChapter.lastRead + "");
+        lastReadTwoInnerText = lastReadChapter.chapterName;
     } else {
-        lastReadOne.innerText = hyphenateChapterName("Never read before");
-        lastReadTwo.innerText = hyphenateChapterName("New");
+        lastReadOneInnerText = "Never read before";
+        lastReadTwoInnerText = "New";
     }
+    lastReadOne.innerText = hyphenateChapterName(lastReadOneInnerText);
+    lastReadTwo.innerText = hyphenateChapterName(lastReadTwoInnerText);
+
 }
 
 function hyphenateChapterName(chapterName: string): string {
-    let hyphenatedChapterName: string = "";
+    let hyphenatedChapterName: string = EMPTY_STRING;
     const maxWordLength = 9;
-    for (const word of chapterName.split(" ")) {
-        if (word.length > maxWordLength) {
-            hyphenatedChapterName += word.substring(0, maxWordLength) + "- " + word.substring(maxWordLength) + " ";
+    for (const word of chapterName.split(SPACE)) {
+        if (word.length > maxWordLength + 1) {
+            hyphenatedChapterName += word.substring(0, maxWordLength) + HYPHEN + SPACE + word.substring(maxWordLength) + SPACE;
         } else {
-            hyphenatedChapterName += word + " ";
+            hyphenatedChapterName += word + SPACE;
         }
     }
 
@@ -382,20 +405,6 @@ function getLastReadChapter(previous: { chapterName: string, lastRead: number },
     }
 
     return returnedChapter;
-}
-
-function createTagWithClassName(tagName: string, className: string): HTMLElement {
-    const createdElement: HTMLElement = document.createElement(tagName);
-    createdElement.className = className;
-
-    return createdElement;
-}
-
-function createTagWithId(tagName: string, id: string): HTMLElement {
-    const createdElement: HTMLElement = document.createElement(tagName);
-    createdElement.id = id;
-
-    return createdElement;
 }
 
 function getTimeAgo(unixTime: string): string {
