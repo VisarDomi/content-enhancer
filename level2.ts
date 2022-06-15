@@ -24,7 +24,7 @@ async function loadVideo(searchResultsThumbnailContainer: HTMLDivElement, levelO
     } else if (!videoLoading) {
         // after the first click, the video's load status is loading
         searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADING);
-        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
+        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
 
         // create level 2
         const levelTwoContainer: HTMLDivElement = createTagWithId("div", levelTwoHref) as HTMLDivElement;
@@ -42,7 +42,7 @@ async function loadVideo(searchResultsThumbnailContainer: HTMLDivElement, levelO
         backButton.onclick = () => {
             levelOneContainer.style.display = BLOCK; // show level 1
             levelTwoContainer.remove(); // destroy level 2
-            searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER;
+            searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER;
             window.scrollTo({top: levelOneScrollPosition});
         }
         levelTwoContainer.appendChild(backButton);
@@ -75,7 +75,7 @@ function createLevelTwoVideo(searchResultsThumbnailContainer: HTMLDivElement): H
         levelTwoVideo.pause();
         // the video is loaded
         searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADED);
-        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADED;
+        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADED;
     }
     levelTwoVideo.onerror = async () => {
         await waitFor(randomNumber(5000, 10000));
@@ -145,31 +145,29 @@ async function loadManga(searchResultsThumbnailContainer: HTMLDivElement, levelO
 async function loadHManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): Promise<void> {
     levelTwoContainer.style.flexDirection = "row";
     levelTwoContainer.style.flexWrap = "wrap";
-    const galleryThumbnails: HTMLImageElement[] = [];
+    const levelThreeThumbnailContainers: HTMLDivElement[] = [];
+
+    // remove a div that gets added from other scripts:
+    const removePotential: HTMLDivElement = document.body.children[1] as HTMLDivElement;
+    if (removePotential.getAttribute("style").length === 80) {
+        removePotential.remove();
+    }
     const galleryThumbnailsCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
     const galleryThumbnailsList: HTMLDivElement[] = [];
     galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
     for (const galleryThumbnailElement of galleryThumbnailsList) {
-        const levelThreeHref: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
-        const levelTwoThumbnail: HTMLImageElement = levelThreeHref.children[0] as HTMLImageElement;
-        levelTwoThumbnail.src = levelTwoThumbnail.getAttribute(DATA_SRC);
-        pushThumbnail(levelTwoThumbnail, levelThreeHref, "loadLevelThree", galleryThumbnails, "l2-thumbnail");
+        const levelThreeAnchor: HTMLAnchorElement = galleryThumbnailElement.children[0] as HTMLAnchorElement;
+        const levelTwoThumbnail: HTMLImageElement = levelThreeAnchor.children[0] as HTMLImageElement;
+
+        const galleryThumbnail: HTMLImageElement = new Image();
+        galleryThumbnail.setAttribute(DATA_SRC, levelTwoThumbnail.getAttribute(DATA_SRC));
+
+        const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", LEVEL_TWO_THUMBNAIL_CONTAINER) as HTMLDivElement;
+        thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelThreeAnchor.href);
+        thumbnailContainer.append(galleryThumbnail);
+        levelThreeThumbnailContainers.push(thumbnailContainer);
     }
-    await loadThumbnailContainer(galleryThumbnails, levelTwoContainer);
-}
-
-function pushThumbnail(levelThumbnail: HTMLImageElement, levelHref: HTMLAnchorElement, functionName: string, thumbnails: HTMLImageElement[], className: string): void {
-    // we got all the needed data
-    const thumbnail: HTMLImageElement = new Image();
-    thumbnail.setAttribute(DATA_SRC, levelThumbnail.src);
-    thumbnail.className = className;
-
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
-        const duration: string = levelThumbnail.getAttribute(DATA_DURATION);
-        thumbnail.setAttribute(DATA_DURATION, duration);
-    }
-
-    thumbnails.push(thumbnail);
+    await loadThumbnailContainer(levelThreeThumbnailContainers, levelTwoContainer);
 }
 
 function loadNhManga(levelTwoContainer: HTMLDivElement, mangaDocument: Document): void {

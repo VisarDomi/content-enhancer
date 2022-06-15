@@ -48,7 +48,7 @@ video {
     bottom: 0;
 }
 
-.thumbnail-container {
+.level-one-thumbnail-container {
     position: relative;
 }
 
@@ -111,7 +111,7 @@ video {
     margin-left: 10px;
 }
 
-.l2-thumbnail {
+.level-two-thumbnail-container {
     width: 50%;
 }
 
@@ -177,7 +177,8 @@ const DATA_NEXT_HREF = "data-next-href";
 const L1_CONTAINER_ID = "level-one-container";
 const L2_CONTAINER_ID = "level-two-container";
 const L3_CONTAINER_ID = "level-three-container";
-const THUMBNAIL_CONTAINER = "thumbnail-container";
+const LEVEL_ONE_THUMBNAIL_CONTAINER = "level-one-thumbnail-container";
+const LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
 const OBSERVE_THUMBNAIL = "observe-thumbnail";
 const OBSERVE_IMAGE = "observe-image";
 const EPH_NUM = "eph-num";
@@ -341,7 +342,7 @@ function pushThumbnailContainer(searchResultsThumbnail, levelOneThumbnailContain
     }
 }
 function createThumbnailContainer(levelOneThumbnail, levelTwoAnchor) {
-    const thumbnailContainer = createTagWithClassName("div", THUMBNAIL_CONTAINER);
+    const thumbnailContainer = createTagWithClassName("div", LEVEL_ONE_THUMBNAIL_CONTAINER);
     thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
     const thumbnail = new Image();
     if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
@@ -398,7 +399,7 @@ async function loadThumbnailContainer(thumbnailContainers, container, index = 0)
         thumbnail.onerror = async () => {
             await onImageLoadError(thumbnail);
         };
-        if (index === thumbnailContainersLength - 1) {
+        if (index === thumbnailContainersLength - 1 && container.id === L1_CONTAINER_ID) {
             thumbnail.className = OBSERVE_THUMBNAIL;
         }
         container.appendChild(thumbnailContainer);
@@ -606,7 +607,7 @@ async function loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition
     else if (!videoLoading) {
         // after the first click, the video's load status is loading
         searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADING);
-        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
+        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
         // create level 2
         const levelTwoContainer = createTagWithId("div", levelTwoHref);
         levelTwoContainer.style.display = NONE;
@@ -621,7 +622,7 @@ async function loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition
         backButton.onclick = () => {
             levelOneContainer.style.display = BLOCK; // show level 1
             levelTwoContainer.remove(); // destroy level 2
-            searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER;
+            searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER;
             window.scrollTo({ top: levelOneScrollPosition });
         };
         levelTwoContainer.appendChild(backButton);
@@ -652,7 +653,7 @@ function createLevelTwoVideo(searchResultsThumbnailContainer) {
         levelTwoVideo.pause();
         // the video is loaded
         searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADED);
-        searchResultsThumbnailContainer.className = THUMBNAIL_CONTAINER + SPACE + LOADED;
+        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADED;
     };
     levelTwoVideo.onerror = async () => {
         await waitFor(randomNumber(5000, 10000));
@@ -718,28 +719,26 @@ async function loadManga(searchResultsThumbnailContainer, levelOneScrollPosition
 async function loadHManga(levelTwoContainer, mangaDocument) {
     levelTwoContainer.style.flexDirection = "row";
     levelTwoContainer.style.flexWrap = "wrap";
-    const galleryThumbnails = [];
+    const levelThreeThumbnailContainers = [];
+    // remove a div that gets added from other scripts:
+    const removePotential = document.body.children[1];
+    if (removePotential.getAttribute("style").length === 80) {
+        removePotential.remove();
+    }
     const galleryThumbnailsCollection = mangaDocument.querySelector(PERIOD + THUMBS).children;
     const galleryThumbnailsList = [];
     galleryThumbnailsList.splice(0, 0, ...Array.from(galleryThumbnailsCollection));
     for (const galleryThumbnailElement of galleryThumbnailsList) {
-        const levelThreeHref = galleryThumbnailElement.children[0];
-        const levelTwoThumbnail = levelThreeHref.children[0];
-        levelTwoThumbnail.src = levelTwoThumbnail.getAttribute(DATA_SRC);
-        pushThumbnail(levelTwoThumbnail, levelThreeHref, "loadLevelThree", galleryThumbnails, "l2-thumbnail");
+        const levelThreeAnchor = galleryThumbnailElement.children[0];
+        const levelTwoThumbnail = levelThreeAnchor.children[0];
+        const galleryThumbnail = new Image();
+        galleryThumbnail.setAttribute(DATA_SRC, levelTwoThumbnail.getAttribute(DATA_SRC));
+        const thumbnailContainer = createTagWithClassName("div", LEVEL_TWO_THUMBNAIL_CONTAINER);
+        thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelThreeAnchor.href);
+        thumbnailContainer.append(galleryThumbnail);
+        levelThreeThumbnailContainers.push(thumbnailContainer);
     }
-    await loadThumbnailContainer(galleryThumbnails, levelTwoContainer);
-}
-function pushThumbnail(levelThumbnail, levelHref, functionName, thumbnails, className) {
-    // we got all the needed data
-    const thumbnail = new Image();
-    thumbnail.setAttribute(DATA_SRC, levelThumbnail.src);
-    thumbnail.className = className;
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
-        const duration = levelThumbnail.getAttribute(DATA_DURATION);
-        thumbnail.setAttribute(DATA_DURATION, duration);
-    }
-    thumbnails.push(thumbnail);
+    await loadThumbnailContainer(levelThreeThumbnailContainers, levelTwoContainer);
 }
 function loadNhManga(levelTwoContainer, mangaDocument) {
     levelTwoContainer.style.flexDirection = "column";

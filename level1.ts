@@ -10,7 +10,8 @@ const DATA_NEXT_HREF: string = "data-next-href";
 const L1_CONTAINER_ID: string = "level-one-container";
 const L2_CONTAINER_ID: string = "level-two-container";
 const L3_CONTAINER_ID: string = "level-three-container";
-const THUMBNAIL_CONTAINER: string = "thumbnail-container";
+const LEVEL_ONE_THUMBNAIL_CONTAINER: string = "level-one-thumbnail-container";
+const LEVEL_TWO_THUMBNAIL_CONTAINER: string = "level-two-thumbnail-container";
 const OBSERVE_THUMBNAIL: string = "observe-thumbnail";
 const OBSERVE_IMAGE: string = "observe-image";
 const EPH_NUM: string = "eph-num";
@@ -182,8 +183,8 @@ function pushThumbnailContainer(searchResultsThumbnail: HTMLElement, levelOneThu
 }
 
 function createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoAnchor: HTMLAnchorElement): HTMLDivElement {
-    const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", THUMBNAIL_CONTAINER) as HTMLDivElement;
-    thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF ,levelTwoAnchor.href);
+    const thumbnailContainer: HTMLDivElement = createTagWithClassName("div", LEVEL_ONE_THUMBNAIL_CONTAINER) as HTMLDivElement;
+    thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
 
     const thumbnail: HTMLImageElement = new Image();
     if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
@@ -248,7 +249,7 @@ async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], con
         thumbnail.onerror = async () => {
             await onImageLoadError(thumbnail);
         }
-        if (index === thumbnailContainersLength - 1) {
+        if (index === thumbnailContainersLength - 1 && container.id === L1_CONTAINER_ID) {
             thumbnail.className = OBSERVE_THUMBNAIL;
         }
         container.appendChild(thumbnailContainer);
@@ -263,7 +264,6 @@ async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], con
             //     await updateLevelTwoThumbnailContainer(levelTwoThumbnailContainer);
             // }
         }
-
     }
 }
 

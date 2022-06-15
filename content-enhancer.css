@@ -35,7 +35,7 @@ video {
     bottom: 0;
 }
 
-.thumbnail-container {
+.level-one-thumbnail-container {
     position: relative;
 }
 
@@ -98,7 +98,7 @@ video {
     margin-left: 10px;
 }
 
-.l2-thumbnail {
+.level-two-thumbnail-container {
     width: 50%;
 }
 
