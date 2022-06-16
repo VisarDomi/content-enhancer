@@ -8,13 +8,12 @@ const DATA_LEVEL_THREE_HREF: string = "data-level-three-href";
 const DATA_DURATION: string = "data-duration";
 const DATA_NEXT_HREF: string = "data-next-href";
 const L1_CONTAINER_ID: string = "level-one-container";
-const L2_CONTAINER_ID: string = "level-two-container";
 const LEVEL_ONE_THUMBNAIL_CONTAINER: string = "level-one-thumbnail-container";
 const OBSERVE_THUMBNAIL: string = "observe-thumbnail";
 const EPH_NUM: string = "eph-num";
 const THUMBS: string = "thumbs";
-const LAST_READ_1: string = "last-read-one";
-const LAST_READ_2: string = "last-read-two";
+const LAST_WATCHED_1: string = "last-watched-one";
+const LAST_WATCHED_2: string = "last-watched-two";
 const LAST_AVAILABLE_1: string = "last-available-one";
 const LAST_AVAILABLE_2: string = "last-available-two";
 const EMPTY_STRING: string = "";
@@ -31,7 +30,6 @@ const NHENTAI: string = "nhentai";
 const ASURASCANS: string = "asurascans";
 
 async function createLevelOne(): Promise<void> {
-    // TODO: send spaced requests to load information about total and read chapters
     const searchResultsDocument = await getResponseDocument(ORIGINAL_HREF);
     setNextSearchResultsHref(searchResultsDocument); // we'll use this information in an observer
     const levelOneThumbnailContainers: HTMLDivElement[] = createLevelOneThumbnailContainers(searchResultsDocument);
@@ -183,31 +181,29 @@ function createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoA
     thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
 
     const thumbnail: HTMLImageElement = new Image();
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
-        const duration: HTMLDivElement = createTagWithClassName("div", "duration") as HTMLDivElement;
-        duration.innerText = levelOneThumbnail.getAttribute(DATA_DURATION);
-        thumbnailContainer.appendChild(duration);
-    } else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
-        const latestContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
-        const lastRead: HTMLDivElement = createTagWithClassName("div", "last-read-element") as HTMLDivElement;
-        const lastAvailable: HTMLDivElement = createTagWithClassName("div", "last-available-element") as HTMLDivElement;
-        const lastReadOne: HTMLDivElement = createTagWithId("div", LAST_READ_1 + levelTwoAnchor.href) as HTMLDivElement;
-        lastReadOne.innerText = LOADING___;
-        const lastReadTwo: HTMLDivElement = createTagWithId("div", LAST_READ_2 + levelTwoAnchor.href) as HTMLDivElement;
-        lastReadTwo.innerText = LOADING___;
-        const lastAvailableOne: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href) as HTMLDivElement;
-        lastAvailableOne.innerText = LOADING___;
-        const lastAvailableTwo: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href) as HTMLDivElement;
-        lastAvailableTwo.innerText = LOADING___;
+    const latestContainer: HTMLDivElement = createTagWithClassName("div", "latest-container") as HTMLDivElement;
+    const lastWatched: HTMLDivElement = createTagWithClassName("div", "last-watched-element") as HTMLDivElement;
+    const lastAvailable: HTMLDivElement = createTagWithClassName("div", "last-available-element") as HTMLDivElement;
+    const lastWatchedOne: HTMLDivElement = createTagWithId("div", LAST_WATCHED_1 + levelTwoAnchor.href) as HTMLDivElement;
+    lastWatchedOne.innerText = LOADING___;
+    const lastWatchedTwo: HTMLDivElement = createTagWithId("div", LAST_WATCHED_2 + levelTwoAnchor.href) as HTMLDivElement;
+    lastWatchedTwo.innerText = LOADING___;
+    const lastAvailableOne: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href) as HTMLDivElement;
+    lastAvailableOne.innerText = LOADING___;
+    const lastAvailableTwo: HTMLDivElement = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href) as HTMLDivElement;
+    lastAvailableTwo.innerText = LOADING___;
 
-        lastRead.appendChild(lastReadOne);
-        lastRead.appendChild(lastReadTwo);
-        lastAvailable.appendChild(lastAvailableOne);
-        lastAvailable.appendChild(lastAvailableTwo);
-        latestContainer.appendChild(lastRead);
-        latestContainer.appendChild(lastAvailable);
-        thumbnailContainer.appendChild(latestContainer);
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
+        lastAvailableTwo.setAttribute(DATA_DURATION, levelOneThumbnail.getAttribute(DATA_DURATION));
     }
+
+    lastWatched.appendChild(lastWatchedOne);
+    lastWatched.appendChild(lastWatchedTwo);
+    lastAvailable.appendChild(lastAvailableOne);
+    lastAvailable.appendChild(lastAvailableTwo);
+    latestContainer.appendChild(lastWatched);
+    latestContainer.appendChild(lastAvailable);
+    thumbnailContainer.appendChild(latestContainer);
 
     thumbnail.setAttribute(DATA_SRC, levelOneThumbnail.src);
     thumbnailContainer.appendChild(thumbnail);
@@ -255,10 +251,6 @@ async function loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], con
             for (const levelOneThumbnailContainer of thumbnailContainers) {
                 await updateLevelOneThumbnailContainer(levelOneThumbnailContainer);
             }
-        } else if (container.id === L2_CONTAINER_ID) { // TODO: the thumbnails of h manga
-            // for (const levelTwoThumbnailContainer of thumbnailContainers) {
-            //     await updateLevelTwoThumbnailContainer(levelTwoThumbnailContainer);
-            // }
         }
     }
 }
@@ -306,30 +298,71 @@ function observeThumbnail(levelOneContainer: HTMLDivElement) {
 
 async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer: HTMLDivElement): Promise<void> {
     const levelTwoHref: string = levelOneThumbnailContainer.getAttribute(DATA_LEVEL_TWO_HREF);
-    const mangaDocument: Document = await getResponseDocument(levelTwoHref);
-    const lastReadOne: HTMLDivElement = document.getElementById(LAST_READ_1 + levelTwoHref) as HTMLDivElement;
-    const lastReadTwo: HTMLDivElement = document.getElementById(LAST_READ_2 + levelTwoHref) as HTMLDivElement;
+    const lastWatchedOne: HTMLDivElement = document.getElementById(LAST_WATCHED_1 + levelTwoHref) as HTMLDivElement;
+    const lastWatchedTwo: HTMLDivElement = document.getElementById(LAST_WATCHED_2 + levelTwoHref) as HTMLDivElement;
     const lastAvailableOne: HTMLDivElement = document.getElementById(LAST_AVAILABLE_1 + levelTwoHref) as HTMLDivElement;
     const lastAvailableTwo: HTMLDivElement = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
 
-    if (ORIGINAL_HREF.includes(NHENTAI)) {
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
+        updateLevelOneVideo(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
+    } else if (ORIGINAL_HREF.includes(NHENTAI)) {
         const thumbnails: HTMLDivElement[] = [];
-        const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
+        const hMangaDocument: Document = await getResponseDocument(levelTwoHref);
+        const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = hMangaDocument.querySelector(PERIOD + THUMBS).children as HTMLCollectionOf<HTMLDivElement>;
         thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
-        updateLevelOneHManga(thumbnails, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        updateLevelOneHManga(thumbnails, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     } else if (ORIGINAL_HREF.includes(ASURASCANS)) {
         const chapters: HTMLDivElement[] = [];
-        const nodeChapters: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(PERIOD + EPH_NUM) as NodeListOf<HTMLDivElement>;
+        const nhMangaDocument: Document = await getResponseDocument(levelTwoHref);
+        const nodeChapters: NodeListOf<HTMLDivElement> = nhMangaDocument.querySelectorAll(PERIOD + EPH_NUM) as NodeListOf<HTMLDivElement>;
         chapters.splice(0, 0, ...Array.from(nodeChapters));
-        updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        updateLevelOneNhManga(chapters, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
 }
 
-function updateLevelOneHManga(thumbnails: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
-    lastAvailableOne.innerText = hyphenateLongWord("Last gallery page:");
-    lastAvailableTwo.innerText = hyphenateLongWord("Page " + thumbnails.length);
+function updateLevelOneVideo(levelTwoHref: string, lastWatchedOne: HTMLDivElement, lastWatchedTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
+    lastAvailableOne.innerText = "Duration:";
+    lastAvailableTwo.innerText = lastAvailableTwo.getAttribute(DATA_DURATION);
+    lastWatchedOne.innerText = "Never watched before";
+    lastWatchedTwo.innerText = "New";
 
-    // TODO: first save the information, then get back to this
+    try {
+        const video: { lastWatched: number, currentTime: number } = JSON.parse(localStorage.getItem(levelTwoHref));
+        lastWatchedOne.innerText = "Watched: " + getTimeAgo(video.lastWatched + "");
+        lastWatchedTwo.innerText = getCurrentTime(video.currentTime);
+    } catch (ignored) {
+    }
+}
+
+function getCurrentTime(time: number): string {
+    let currentTime: string;
+    const secondsPerMinute: number = 60;
+    const minutesPerHour: number = 60;
+    if (time < 10) {
+        currentTime = "00:0" + parseInt(time + "");
+    } else if (time < secondsPerMinute) {
+        currentTime = "00:" + parseInt(time + "");
+    } else if (time < ((secondsPerMinute * minutesPerHour) / 10)) { // less than 10 minutes
+        const minutes: number = parseInt((time / secondsPerMinute) + "");
+        const seconds: number = parseInt(time % secondsPerMinute + "");
+        currentTime = "0" + minutes + ":" + seconds;
+    } else if (time < (secondsPerMinute * minutesPerHour)) {
+        const minutes: number = parseInt((time / secondsPerMinute) + "");
+        const seconds: number = parseInt(time % secondsPerMinute + "");
+        currentTime = minutes + ":" + seconds;
+    } else {
+        const hours: number = parseInt((time / (secondsPerMinute * minutesPerHour)) + "");
+        const minutes: number = parseInt((time / secondsPerMinute) + "") % minutesPerHour;
+        const seconds: number = parseInt(time % secondsPerMinute + "");
+        currentTime = hours + ":" + minutes + ":" + seconds;
+    }
+    return currentTime;
+}
+
+function updateLevelOneHManga(thumbnails: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
+    lastAvailableOne.innerText = "Total pages:";
+    lastAvailableTwo.innerText = "Page " + thumbnails.length;
+
     const readThumbnails: { name: string, lastRead: number }[] = [];
     let lastReadFound: boolean = false;
     for (const galleryThumbnailElement of thumbnails) {
@@ -359,12 +392,12 @@ function updateLevelOneHManga(thumbnails: HTMLDivElement[], lastReadOne: HTMLDiv
         lastReadOneInnerText = "Never read before";
         lastReadTwoInnerText = "New";
     }
-    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
-    lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
+    lastReadOne.innerText = lastReadOneInnerText;
+    lastReadTwo.innerText = lastReadTwoInnerText;
 }
 
 function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
-    lastAvailableOne.innerText = hyphenateLongWord("Last available:");
+    lastAvailableOne.innerText = "Last available:";
 
     const readChapters: { name: string, lastRead: number }[] = [];
     let lastReadFound: boolean = false;
@@ -397,7 +430,7 @@ function updateLevelOneNhManga(chapters: HTMLDivElement[], lastReadOne: HTMLDivE
         lastReadOneInnerText = "Never read before";
         lastReadTwoInnerText = "New";
     }
-    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
+    lastReadOne.innerText = lastReadOneInnerText;
     lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
 
 }
@@ -430,26 +463,30 @@ function getLastReadChapter(previous: { name: string, lastRead: number }, curren
 function getTimeAgo(unixTime: string): string {
     const now: number = Date.now();
     const before: number = parseInt(unixTime);
-    let difference: number = (now - before) / 1000; // unix time is in milliseconds
-    let timeAgo: string = Math.ceil(difference) + " seconds ago";
+    const difference: number = (now - before) / 1000; // unix time is in milliseconds
+
+    const secondsPerSeconds: number = 1;
     const secondsPerMinute: number = 60;
     const minutesPerHour: number = 60;
     const hoursPerWeek: number = 24;
     const daysPerWeek: number = 7;
     const weeksPerMonth: number = 4;
     const monthsPerYear: number = 12;
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute, " minute ago", " minutes ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour, " hour ago", " hours ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek, " day ago", " days ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek, " week ago", " weeks ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth, " month ago", " months ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth * monthsPerYear, " year ago", " years ago");
+
+    let timeAgo: string = null;
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerSeconds, " second ago", " seconds ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute, " minute ago", " minutes ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour, " hour ago", " hours ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek, " day ago", " days ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek, " week ago", " weeks ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth, " month ago", " months ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth * monthsPerYear, " year ago", " years ago");
     return timeAgo;
 }
 
-function getTime(timeAgo: string, difference: number, factor: number, singular: string, plural: string): string {
+function modifyTimeAgo(timeAgo: string, difference: number, factor: number, singular: string, plural: string): string {
     let returnedTimeAgo: string = timeAgo;
-    if (difference > factor) {
+    if (difference > factor || factor === 1) {
         const time: number = Math.floor(difference / factor);
         if (time === 1) {
             returnedTimeAgo = time + singular;

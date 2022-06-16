@@ -15,6 +15,7 @@ const CSS = `/* level 1 */
 body {
     margin: 0;
     background-color: black;
+    padding-bottom: 200px;
 }
 
 img, video {
@@ -38,16 +39,6 @@ video {
     opacity: 0.5;
 }
 
-.duration {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.7);
-    font-family: sans-serif;
-    color: white;
-    z-index: 1;
-    padding: 5px;
-    bottom: 0;
-}
-
 .level-one-thumbnail-container {
     position: relative;
 }
@@ -62,13 +53,19 @@ video {
     color: white;
 }
 
-.last-read-element, .last-available-element {
+.last-watched-element, .last-available-element {
     background-color: rgba(0, 0, 0, 0.5);
     width: 50%;
 }
 
-.last-read-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
+.last-watched-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
     font-size: 2rem;
+}
+
+.last-available-element {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
 }
 
 /* level 2 */
@@ -147,31 +144,31 @@ video {
     }
 }
 
-.clicker {
-    background-color: rgba(0, 0, 0, 0.0);
-    z-index: 1;
-}
-
-.clicker, .info, .info-clicked {
+.info, .info-clicked {
     position: fixed;
     left: 0;
     top: 30%;
     height: 30%;
     width: 100%;
-}
-
-.info {
-    display: none;
-}
-
-.info-clicked {
     display: flex;
-    background-color: rgba(0, 0, 0, 0.7);
     justify-content: center;
     align-items: center;
 }
 
+.info {
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
+.info-clicked {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
 .info-content {
+    display: none;
+}
+
+.info-content-clicked {
+    display: block;
     font-size: 1.1rem;
     font-family: sans-serif;
     color: white;
@@ -189,13 +186,12 @@ const DATA_LEVEL_THREE_HREF = "data-level-three-href";
 const DATA_DURATION = "data-duration";
 const DATA_NEXT_HREF = "data-next-href";
 const L1_CONTAINER_ID = "level-one-container";
-const L2_CONTAINER_ID = "level-two-container";
 const LEVEL_ONE_THUMBNAIL_CONTAINER = "level-one-thumbnail-container";
 const OBSERVE_THUMBNAIL = "observe-thumbnail";
 const EPH_NUM = "eph-num";
 const THUMBS = "thumbs";
-const LAST_READ_1 = "last-read-one";
-const LAST_READ_2 = "last-read-two";
+const LAST_WATCHED_1 = "last-watched-one";
+const LAST_WATCHED_2 = "last-watched-two";
 const LAST_AVAILABLE_1 = "last-available-one";
 const LAST_AVAILABLE_2 = "last-available-two";
 const EMPTY_STRING = "";
@@ -211,7 +207,6 @@ const KISSJAV = "kissjav";
 const NHENTAI = "nhentai";
 const ASURASCANS = "asurascans";
 async function createLevelOne() {
-    // TODO: send spaced requests to load information about total and read chapters
     const searchResultsDocument = await getResponseDocument(ORIGINAL_HREF);
     setNextSearchResultsHref(searchResultsDocument); // we'll use this information in an observer
     const levelOneThumbnailContainers = createLevelOneThumbnailContainers(searchResultsDocument);
@@ -355,31 +350,27 @@ function createThumbnailContainer(levelOneThumbnail, levelTwoAnchor) {
     const thumbnailContainer = createTagWithClassName("div", LEVEL_ONE_THUMBNAIL_CONTAINER);
     thumbnailContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
     const thumbnail = new Image();
-    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) { // TODO: add last watched information
-        const duration = createTagWithClassName("div", "duration");
-        duration.innerText = levelOneThumbnail.getAttribute(DATA_DURATION);
-        thumbnailContainer.appendChild(duration);
+    const latestContainer = createTagWithClassName("div", "latest-container");
+    const lastWatched = createTagWithClassName("div", "last-watched-element");
+    const lastAvailable = createTagWithClassName("div", "last-available-element");
+    const lastWatchedOne = createTagWithId("div", LAST_WATCHED_1 + levelTwoAnchor.href);
+    lastWatchedOne.innerText = LOADING___;
+    const lastWatchedTwo = createTagWithId("div", LAST_WATCHED_2 + levelTwoAnchor.href);
+    lastWatchedTwo.innerText = LOADING___;
+    const lastAvailableOne = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href);
+    lastAvailableOne.innerText = LOADING___;
+    const lastAvailableTwo = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href);
+    lastAvailableTwo.innerText = LOADING___;
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
+        lastAvailableTwo.setAttribute(DATA_DURATION, levelOneThumbnail.getAttribute(DATA_DURATION));
     }
-    else if (ORIGINAL_HREF.includes(NHENTAI) || ORIGINAL_HREF.includes(ASURASCANS)) {
-        const latestContainer = createTagWithClassName("div", "latest-container");
-        const lastRead = createTagWithClassName("div", "last-read-element");
-        const lastAvailable = createTagWithClassName("div", "last-available-element");
-        const lastReadOne = createTagWithId("div", LAST_READ_1 + levelTwoAnchor.href);
-        lastReadOne.innerText = LOADING___;
-        const lastReadTwo = createTagWithId("div", LAST_READ_2 + levelTwoAnchor.href);
-        lastReadTwo.innerText = LOADING___;
-        const lastAvailableOne = createTagWithId("div", LAST_AVAILABLE_1 + levelTwoAnchor.href);
-        lastAvailableOne.innerText = LOADING___;
-        const lastAvailableTwo = createTagWithId("div", LAST_AVAILABLE_2 + levelTwoAnchor.href);
-        lastAvailableTwo.innerText = LOADING___;
-        lastRead.appendChild(lastReadOne);
-        lastRead.appendChild(lastReadTwo);
-        lastAvailable.appendChild(lastAvailableOne);
-        lastAvailable.appendChild(lastAvailableTwo);
-        latestContainer.appendChild(lastRead);
-        latestContainer.appendChild(lastAvailable);
-        thumbnailContainer.appendChild(latestContainer);
-    }
+    lastWatched.appendChild(lastWatchedOne);
+    lastWatched.appendChild(lastWatchedTwo);
+    lastAvailable.appendChild(lastAvailableOne);
+    lastAvailable.appendChild(lastAvailableTwo);
+    latestContainer.appendChild(lastWatched);
+    latestContainer.appendChild(lastAvailable);
+    thumbnailContainer.appendChild(latestContainer);
     thumbnail.setAttribute(DATA_SRC, levelOneThumbnail.src);
     thumbnailContainer.appendChild(thumbnail);
     thumbnailContainer.onclick = async () => {
@@ -420,11 +411,6 @@ async function loadThumbnailContainer(thumbnailContainers, container, index = 0)
             for (const levelOneThumbnailContainer of thumbnailContainers) {
                 await updateLevelOneThumbnailContainer(levelOneThumbnailContainer);
             }
-        }
-        else if (container.id === L2_CONTAINER_ID) { // TODO: the thumbnails of h manga
-            // for (const levelTwoThumbnailContainer of thumbnailContainers) {
-            //     await updateLevelTwoThumbnailContainer(levelTwoThumbnailContainer);
-            // }
         }
     }
 }
@@ -470,28 +456,72 @@ function observeThumbnail(levelOneContainer) {
 }
 async function updateLevelOneThumbnailContainer(levelOneThumbnailContainer) {
     const levelTwoHref = levelOneThumbnailContainer.getAttribute(DATA_LEVEL_TWO_HREF);
-    const mangaDocument = await getResponseDocument(levelTwoHref);
-    const lastReadOne = document.getElementById(LAST_READ_1 + levelTwoHref);
-    const lastReadTwo = document.getElementById(LAST_READ_2 + levelTwoHref);
+    const lastWatchedOne = document.getElementById(LAST_WATCHED_1 + levelTwoHref);
+    const lastWatchedTwo = document.getElementById(LAST_WATCHED_2 + levelTwoHref);
     const lastAvailableOne = document.getElementById(LAST_AVAILABLE_1 + levelTwoHref);
     const lastAvailableTwo = document.getElementById(LAST_AVAILABLE_2 + levelTwoHref);
-    if (ORIGINAL_HREF.includes(NHENTAI)) {
+    if (ORIGINAL_HREF.includes(TOKYOMOTION) || ORIGINAL_HREF.includes(KISSJAV)) {
+        updateLevelOneVideo(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
+    }
+    else if (ORIGINAL_HREF.includes(NHENTAI)) {
         const thumbnails = [];
-        const galleryThumbnailCollection = mangaDocument.querySelector(PERIOD + THUMBS).children;
+        const hMangaDocument = await getResponseDocument(levelTwoHref);
+        const galleryThumbnailCollection = hMangaDocument.querySelector(PERIOD + THUMBS).children;
         thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
-        updateLevelOneHManga(thumbnails, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        updateLevelOneHManga(thumbnails, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
     else if (ORIGINAL_HREF.includes(ASURASCANS)) {
         const chapters = [];
-        const nodeChapters = mangaDocument.querySelectorAll(PERIOD + EPH_NUM);
+        const nhMangaDocument = await getResponseDocument(levelTwoHref);
+        const nodeChapters = nhMangaDocument.querySelectorAll(PERIOD + EPH_NUM);
         chapters.splice(0, 0, ...Array.from(nodeChapters));
-        updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        updateLevelOneNhManga(chapters, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
 }
+function updateLevelOneVideo(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo) {
+    lastAvailableOne.innerText = "Duration:";
+    lastAvailableTwo.innerText = lastAvailableTwo.getAttribute(DATA_DURATION);
+    lastWatchedOne.innerText = "Never watched before";
+    lastWatchedTwo.innerText = "New";
+    try {
+        const video = JSON.parse(localStorage.getItem(levelTwoHref));
+        lastWatchedOne.innerText = "Watched: " + getTimeAgo(video.lastWatched + "");
+        lastWatchedTwo.innerText = getCurrentTime(video.currentTime);
+    }
+    catch (ignored) {
+    }
+}
+function getCurrentTime(time) {
+    let currentTime;
+    const secondsPerMinute = 60;
+    const minutesPerHour = 60;
+    if (time < 10) {
+        currentTime = "00:0" + parseInt(time + "");
+    }
+    else if (time < secondsPerMinute) {
+        currentTime = "00:" + parseInt(time + "");
+    }
+    else if (time < ((secondsPerMinute * minutesPerHour) / 10)) { // less than 10 minutes
+        const minutes = parseInt((time / secondsPerMinute) + "");
+        const seconds = parseInt(time % secondsPerMinute + "");
+        currentTime = "0" + minutes + ":" + seconds;
+    }
+    else if (time < (secondsPerMinute * minutesPerHour)) {
+        const minutes = parseInt((time / secondsPerMinute) + "");
+        const seconds = parseInt(time % secondsPerMinute + "");
+        currentTime = minutes + ":" + seconds;
+    }
+    else {
+        const hours = parseInt((time / (secondsPerMinute * minutesPerHour)) + "");
+        const minutes = parseInt((time / secondsPerMinute) + "") % minutesPerHour;
+        const seconds = parseInt(time % secondsPerMinute + "");
+        currentTime = hours + ":" + minutes + ":" + seconds;
+    }
+    return currentTime;
+}
 function updateLevelOneHManga(thumbnails, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-    lastAvailableOne.innerText = hyphenateLongWord("Last gallery page:");
-    lastAvailableTwo.innerText = hyphenateLongWord("Page " + thumbnails.length);
-    // TODO: first save the information, then get back to this
+    lastAvailableOne.innerText = "Total pages:";
+    lastAvailableTwo.innerText = "Page " + thumbnails.length;
     const readThumbnails = [];
     let lastReadFound = false;
     for (const galleryThumbnailElement of thumbnails) {
@@ -521,11 +551,11 @@ function updateLevelOneHManga(thumbnails, lastReadOne, lastReadTwo, lastAvailabl
         lastReadOneInnerText = "Never read before";
         lastReadTwoInnerText = "New";
     }
-    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
-    lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
+    lastReadOne.innerText = lastReadOneInnerText;
+    lastReadTwo.innerText = lastReadTwoInnerText;
 }
 function updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-    lastAvailableOne.innerText = hyphenateLongWord("Last available:");
+    lastAvailableOne.innerText = "Last available:";
     const readChapters = [];
     let lastReadFound = false;
     for (let i = 0; i < chapters.length; i++) {
@@ -557,7 +587,7 @@ function updateLevelOneNhManga(chapters, lastReadOne, lastReadTwo, lastAvailable
         lastReadOneInnerText = "Never read before";
         lastReadTwoInnerText = "New";
     }
-    lastReadOne.innerText = hyphenateLongWord(lastReadOneInnerText);
+    lastReadOne.innerText = lastReadOneInnerText;
     lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
 }
 function hyphenateLongWord(chapterName) {
@@ -586,25 +616,27 @@ function getLastReadChapter(previous, current) {
 function getTimeAgo(unixTime) {
     const now = Date.now();
     const before = parseInt(unixTime);
-    let difference = (now - before) / 1000; // unix time is in milliseconds
-    let timeAgo = Math.ceil(difference) + " seconds ago";
+    const difference = (now - before) / 1000; // unix time is in milliseconds
+    const secondsPerSeconds = 1;
     const secondsPerMinute = 60;
     const minutesPerHour = 60;
     const hoursPerWeek = 24;
     const daysPerWeek = 7;
     const weeksPerMonth = 4;
     const monthsPerYear = 12;
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute, " minute ago", " minutes ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour, " hour ago", " hours ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek, " day ago", " days ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek, " week ago", " weeks ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth, " month ago", " months ago");
-    timeAgo = getTime(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth * monthsPerYear, " year ago", " years ago");
+    let timeAgo = null;
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerSeconds, " second ago", " seconds ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute, " minute ago", " minutes ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour, " hour ago", " hours ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek, " day ago", " days ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek, " week ago", " weeks ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth, " month ago", " months ago");
+    timeAgo = modifyTimeAgo(timeAgo, difference, secondsPerMinute * minutesPerHour * hoursPerWeek * daysPerWeek * weeksPerMonth * monthsPerYear, " year ago", " years ago");
     return timeAgo;
 }
-function getTime(timeAgo, difference, factor, singular, plural) {
+function modifyTimeAgo(timeAgo, difference, factor, singular, plural) {
     let returnedTimeAgo = timeAgo;
-    if (difference > factor) {
+    if (difference > factor || factor === 1) {
         const time = Math.floor(difference / factor);
         if (time === 1) {
             returnedTimeAgo = time + singular;
@@ -619,6 +651,7 @@ function getTime(timeAgo, difference, factor, singular, plural) {
 const DATA_LOAD_STATUS = "data-load-status";
 const LOADED = "loaded";
 const LOADING = "loading";
+const L2_CONTAINER_ID = "level-two-container";
 const LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
 const BLOCK = "block";
 async function loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
@@ -643,7 +676,7 @@ async function loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition
     else if (!videoLoading) {
         // after the first click, the video's load status is loading
         searchResultsThumbnailContainer.setAttribute(DATA_LOAD_STATUS, LOADING);
-        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADING; // TODO: use localstorage to remember watched videos
+        searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER + SPACE + LOADING;
         // create level 2
         const levelTwoContainer = createTagWithId("div", levelTwoHref);
         levelTwoContainer.style.display = NONE;
@@ -655,11 +688,21 @@ async function loadVideo(searchResultsThumbnailContainer, levelOneScrollPosition
         // the go back button
         const backButton = createTagWithId("div", "go-to-level-one");
         backButton.className = "go-back-video";
+        const intervalId = setInterval(() => {
+            const video = {
+                lastWatched: Date.now(),
+                currentTime: levelTwoVideo.currentTime
+            };
+            localStorage.setItem(levelTwoHref, JSON.stringify(video));
+        }, 1000);
         backButton.onclick = () => {
+            clearInterval(intervalId);
             levelOneContainer.style.display = BLOCK; // show level 1
             levelTwoContainer.remove(); // destroy level 2
             searchResultsThumbnailContainer.className = LEVEL_ONE_THUMBNAIL_CONTAINER;
             window.scrollTo({ top: levelOneScrollPosition });
+            const lastWatchedOne = document.getElementById(LAST_WATCHED_1 + levelTwoHref);
+            updateLevelOneThumbnailContainer(lastWatchedOne.parentElement.parentElement.parentElement); // do this asynchronously
         };
         levelTwoContainer.appendChild(backButton);
         // refresh should be at the end of the page
@@ -731,35 +774,18 @@ async function loadManga(searchResultsThumbnailContainer, levelOneScrollPosition
     // create level 2
     const levelTwoHref = searchResultsThumbnailContainer.getAttribute(DATA_LEVEL_TWO_HREF);
     const levelTwoContainer = createTagWithId("div", L2_CONTAINER_ID);
-    levelTwoContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoHref); // TODO: delete?
+    levelTwoContainer.setAttribute(DATA_LEVEL_TWO_HREF, levelTwoHref);
     levelTwoContainer.style.display = FLEX;
     document.querySelector("body").appendChild(levelTwoContainer);
     document.getElementById(L1_CONTAINER_ID).style.display = NONE; // hide level 1
     const backButton = createTagWithId("div", "go-to-level-one");
     backButton.className = "go-back-manga";
     backButton.onclick = () => {
-        // update level one chapter information
-        const levelThreeHref = levelTwoContainer.getAttribute(DATA_LEVEL_THREE_HREF);
-        if (levelThreeHref !== null) {
-            const lastRead = document.getElementById(levelThreeHref);
-            let lastReadTwoInnerText;
-            if (ORIGINAL_HREF.includes(NHENTAI)) {
-                const parts = levelThreeHref.split("/");
-                lastReadTwoInnerText = "Page " + parts[parts.length - 2]; // the penultimate part
-            }
-            else if (ORIGINAL_HREF.includes(ASURASCANS)) {
-                const chapterButton = lastRead.parentElement.parentElement.getElementsByTagName("button")[0];
-                lastReadTwoInnerText = chapterButton.innerText;
-            }
-            const lastReadOne = document.getElementById(LAST_READ_1 + levelTwoHref);
-            lastReadOne.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
-            const lastReadTwo = document.getElementById(LAST_READ_2 + levelTwoHref);
-            lastReadTwo.innerText = hyphenateLongWord(lastReadTwoInnerText);
-            levelTwoContainer.removeAttribute(DATA_LEVEL_THREE_HREF);
-        }
         document.getElementById(L1_CONTAINER_ID).style.display = BLOCK; // show level 1
         levelTwoContainer.remove(); // destroy level 2
         window.scrollTo({ top: levelOneScrollPosition });
+        const lastWatchedOne = document.getElementById(LAST_WATCHED_1 + levelTwoHref);
+        updateLevelOneThumbnailContainer(lastWatchedOne.parentElement.parentElement.parentElement); // do this asynchronously
     };
     levelTwoContainer.appendChild(backButton);
     // get the gallery thumbnails
@@ -795,7 +821,9 @@ async function loadHManga(levelTwoContainer, mangaDocument) {
         // add the last read information next to the button
         const lastReadContainer = createTagWithClassName("div", "latest-container");
         const lastRead = createTagWithClassName("span", "last-read-gallery");
-        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
+        lastRead.id = levelThreeHref;
+        updateLastRead(lastRead);
+        lastReadContainer.appendChild(lastRead);
         const pageNumber = createTagWithClassName("span", "gallery-page");
         pageNumber.innerText = (i + 1) + "";
         lastReadContainer.appendChild(pageNumber);
@@ -811,9 +839,8 @@ function removeExtraDiv() {
         removePotential.remove();
     }
 }
-function appendLastRead(lastRead, levelThreeHref, lastReadContainer) {
-    lastRead.id = levelThreeHref;
-    const lastReadString = localStorage.getItem(levelThreeHref);
+function updateLastRead(lastRead) {
+    const lastReadString = localStorage.getItem(lastRead.id);
     let lastReadInnerText;
     if (lastReadString === null) {
         lastReadInnerText = "Never read";
@@ -821,8 +848,7 @@ function appendLastRead(lastRead, levelThreeHref, lastReadContainer) {
     else {
         lastReadInnerText = getTimeAgo(lastReadString);
     }
-    lastRead.innerText = hyphenateLongWord(lastReadInnerText);
-    lastReadContainer.appendChild(lastRead);
+    lastRead.innerText = lastReadInnerText;
 }
 function loadNhManga(levelTwoContainer, mangaDocument) {
     levelTwoContainer.style.flexDirection = "column";
@@ -849,7 +875,9 @@ function loadNhManga(levelTwoContainer, mangaDocument) {
         // add the last read information next to the button
         const lastReadContainer = createTagWithClassName("div", "last-read-container");
         const lastRead = createTagWithClassName("span", "last-read");
-        appendLastRead(lastRead, levelThreeHref, lastReadContainer);
+        lastRead.id = levelThreeHref;
+        updateLastRead(lastRead);
+        lastReadContainer.appendChild(lastRead);
         chapterContainer.appendChild(lastReadContainer);
         levelTwoContainer.appendChild(chapterContainer);
     }
@@ -876,31 +904,26 @@ async function loadLevelThree(elementContainer, levelTwoScrollPosition, infoClic
         breakLoop = true;
         levelTwoContainer.style.display = FLEX; // show level 2
         levelThreeContainer.remove(); // destroy level 3
-        // update level two chapter information
-        const lastRead = document.getElementById(levelThreeHref);
-        lastRead.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
-        levelTwoContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-        // scroll to level two scroll position
         window.scrollTo({ top: levelTwoScrollPosition });
     };
     levelThreeContainer.appendChild(backButton);
     // display info
+    const span = createTagWithClassName("span", "info-content");
+    span.innerText = levelThreeHref;
     const info = createTagWithClassName("div", "info");
-    const clicker = createTagWithClassName("div", "clicker");
-    clicker.onclick = () => {
+    info.onclick = () => {
         infoClicked = !infoClicked; // change the status
         if (infoClicked) {
             info.className = "info-clicked";
+            span.className = "info-content-clicked";
         }
         else {
             info.className = "info";
+            span.className = "info-content";
         }
     };
-    const span = createTagWithClassName("span", "info-content");
-    span.innerText = levelThreeHref;
     info.appendChild(span);
     levelThreeContainer.appendChild(info);
-    levelThreeContainer.appendChild(clicker);
     // now it's time to load the images
     if (ORIGINAL_HREF.includes(NHENTAI)) {
         await loadHMangaImage(levelThreeContainer);
@@ -915,11 +938,11 @@ async function loadHMangaImage(levelThreeContainer) {
     if (levelThreeHref !== null && !breakLoop) {
         const imageDocument = await getResponseDocument(levelThreeHref);
         // append the image to the container
-        const image = imageDocument.getElementById("image-container").children[0].children[0];
-        const levelThreeImage = new Image();
-        levelThreeImage.src = image.src;
-        levelThreeImage.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-        levelThreeContainer.appendChild(levelThreeImage);
+        const levelThreeImage = imageDocument.getElementById("image-container").children[0].children[0];
+        const image = new Image();
+        image.src = levelThreeImage.src;
+        image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+        levelThreeContainer.appendChild(image);
         // get the next image document href
         const nextAnchor = imageDocument.querySelector(".next");
         if (nextAnchor.href === EMPTY_STRING) { // there's always a .next, but .next.href can be empty
@@ -929,22 +952,24 @@ async function loadHMangaImage(levelThreeContainer) {
             levelThreeContainer.setAttribute(DATA_LEVEL_THREE_HREF, nextAnchor.href);
         }
         // load the image
-        levelThreeImage.onload = async () => {
+        image.onload = async () => {
             await loadHMangaImage(levelThreeContainer);
         };
-        levelThreeImage.onerror = async () => {
-            await onImageLoadError(levelThreeImage);
+        image.onerror = async () => {
+            await onImageLoadError(image);
         };
-        observeHMangaImage(levelThreeImage);
+        observeHMangaImage(image);
     }
 }
-function observeHMangaImage(levelThreeImage) {
+function observeHMangaImage(image) {
     // observe the image
     const setInfo = (entries) => {
         entries.forEach(async (entry) => {
             if (entry.isIntersecting) {
                 const entryTarget = entry.target;
-                localStorage.setItem(entryTarget.getAttribute(DATA_LEVEL_THREE_HREF), Date.now() + "");
+                const levelThreeHref = entryTarget.getAttribute(DATA_LEVEL_THREE_HREF);
+                localStorage.setItem(levelThreeHref, Date.now() + "");
+                updateLastRead(document.getElementById(levelThreeHref));
             }
         });
     };
@@ -953,7 +978,7 @@ function observeHMangaImage(levelThreeImage) {
         rootMargin: "0px"
     };
     const infoObserver = new IntersectionObserver(setInfo, infoOptions);
-    infoObserver.observe(levelThreeImage);
+    infoObserver.observe(image);
 }
 async function getNhMangaImages(levelThreeHref, retry = true) {
     const images = [];
@@ -967,15 +992,22 @@ async function getNhMangaImages(levelThreeHref, retry = true) {
                 viewports.push(i);
             }
         }
-        viewports.pop(); // remove the last image (it's the credits image)
         for (const viewport of viewports) {
             // the index of the p tags are always 2 more than the index of the viewports
             // the p tag contains only the image
-            const levelThreeImage = readerAreaChildren[viewport + 2].children[0];
-            const image = new Image();
-            image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-            image.setAttribute(DATA_SRC, levelThreeImage.getAttribute(DATA_CFSRC));
-            images.push(image);
+            const parent = readerAreaChildren[viewport + 2];
+            if (parent !== undefined) {
+                const levelThreeImage = readerAreaChildren[viewport + 2].children[0];
+                if (levelThreeImage !== undefined) {
+                    const dataCfsrc = levelThreeImage.getAttribute(DATA_CFSRC);
+                    if (dataCfsrc !== null) {
+                        const image = new Image();
+                        image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+                        image.setAttribute(DATA_SRC, levelThreeImage.getAttribute(DATA_CFSRC));
+                        images.push(image);
+                    }
+                }
+            }
         }
     }
     if (images.length > 0) {
@@ -1012,6 +1044,7 @@ function observeNhMangaImage(image) {
                 const levelThreeHref = observedImage.getAttribute(DATA_LEVEL_THREE_HREF);
                 infoContent.innerText = levelThreeHref;
                 localStorage.setItem(levelThreeHref, Date.now() + "");
+                updateLastRead(document.getElementById(levelThreeHref));
             }
         });
     };
@@ -1047,7 +1080,7 @@ function loadNextChapter(images, levelThreeContainer) {
     nextChapterObserver.observe(image);
 }
 function getNextChapterHref(images) {
-    const href = images[0].getAttribute(DATA_LEVEL_TWO_HREF);
+    const href = images[0].getAttribute(DATA_LEVEL_THREE_HREF);
     const parts = href.split(HYPHEN);
     const chapterString = "chapter";
     const indexOfChapter = parts.indexOf(chapterString);

@@ -2,6 +2,7 @@
 body {
     margin: 0;
     background-color: black;
+    padding-bottom: 200px;
 }
 
 img, video {
@@ -25,16 +26,6 @@ video {
     opacity: 0.5;
 }
 
-.duration {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.7);
-    font-family: sans-serif;
-    color: white;
-    z-index: 1;
-    padding: 5px;
-    bottom: 0;
-}
-
 .level-one-thumbnail-container {
     position: relative;
 }
@@ -49,13 +40,19 @@ video {
     color: white;
 }
 
-.last-read-element, .last-available-element {
+.last-watched-element, .last-available-element {
     background-color: rgba(0, 0, 0, 0.5);
     width: 50%;
 }
 
-.last-read-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
+.last-watched-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
     font-size: 2rem;
+}
+
+.last-available-element {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
 }
 
 /* level 2 */
@@ -134,31 +131,31 @@ video {
     }
 }
 
-.clicker {
-    background-color: rgba(0, 0, 0, 0.0);
-    z-index: 1;
-}
-
-.clicker, .info, .info-clicked {
+.info, .info-clicked {
     position: fixed;
     left: 0;
     top: 30%;
     height: 30%;
     width: 100%;
-}
-
-.info {
-    display: none;
-}
-
-.info-clicked {
     display: flex;
-    background-color: rgba(0, 0, 0, 0.7);
     justify-content: center;
     align-items: center;
 }
 
+.info {
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
+.info-clicked {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
 .info-content {
+    display: none;
+}
+
+.info-content-clicked {
+    display: block;
     font-size: 1.1rem;
     font-family: sans-serif;
     color: white;

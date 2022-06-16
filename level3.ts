@@ -24,33 +24,26 @@ async function loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPo
 
         levelTwoContainer.style.display = FLEX; // show level 2
         levelThreeContainer.remove(); // destroy level 3
-
-        // update level two chapter information
-        const lastRead: HTMLSpanElement = document.getElementById(levelThreeHref) as HTMLDivElement;
-        lastRead.innerText = hyphenateLongWord(getTimeAgo(Date.now() + ""));
-        levelTwoContainer.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-
-        // scroll to level two scroll position
         window.scrollTo({top: levelTwoScrollPosition});
     };
     levelThreeContainer.appendChild(backButton);
 
     // display info
-    const info: HTMLDivElement = createTagWithClassName("div", "info") as HTMLDivElement;
-    const clicker: HTMLDivElement = createTagWithClassName("div", "clicker") as HTMLDivElement;
-    clicker.onclick = () => {
-        infoClicked = !infoClicked; // change the status
-        if (infoClicked) {
-            info.className = "info-clicked"
-        } else {
-            info.className = "info";
-        }
-    }
     const span: HTMLSpanElement = createTagWithClassName("span", "info-content") as HTMLSpanElement;
     span.innerText = levelThreeHref;
+    const info: HTMLDivElement = createTagWithClassName("div", "info") as HTMLDivElement;
+    info.onclick = () => {
+        infoClicked = !infoClicked; // change the status
+        if (infoClicked) {
+            info.className = "info-clicked";
+            span.className = "info-content-clicked";
+        } else {
+            info.className = "info";
+            span.className = "info-content";
+        }
+    }
     info.appendChild(span);
     levelThreeContainer.appendChild(info);
-    levelThreeContainer.appendChild(clicker);
 
     // now it's time to load the images
     if (ORIGINAL_HREF.includes(NHENTAI)) {
@@ -68,11 +61,11 @@ async function loadHMangaImage(levelThreeContainer: HTMLDivElement): Promise<voi
         const imageDocument: Document = await getResponseDocument(levelThreeHref);
 
         // append the image to the container
-        const image: HTMLImageElement = imageDocument.getElementById("image-container").children[0].children[0] as HTMLImageElement;
-        const levelThreeImage: HTMLImageElement = new Image();
-        levelThreeImage.src = image.src;
-        levelThreeImage.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-        levelThreeContainer.appendChild(levelThreeImage);
+        const levelThreeImage: HTMLImageElement = imageDocument.getElementById("image-container").children[0].children[0] as HTMLImageElement;
+        const image: HTMLImageElement = new Image();
+        image.src = levelThreeImage.src;
+        image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+        levelThreeContainer.appendChild(image);
 
         // get the next image document href
         const nextAnchor = imageDocument.querySelector(".next") as HTMLAnchorElement;
@@ -83,24 +76,26 @@ async function loadHMangaImage(levelThreeContainer: HTMLDivElement): Promise<voi
         }
 
         // load the image
-        levelThreeImage.onload = async () => {
+        image.onload = async () => {
             await loadHMangaImage(levelThreeContainer);
         }
-        levelThreeImage.onerror = async () => {
-            await onImageLoadError(levelThreeImage);
+        image.onerror = async () => {
+            await onImageLoadError(image);
         }
 
-        observeHMangaImage(levelThreeImage);
+        observeHMangaImage(image);
     }
 }
 
-function observeHMangaImage(levelThreeImage: HTMLImageElement) {
+function observeHMangaImage(image: HTMLImageElement) {
     // observe the image
     const setInfo = (entries: IntersectionObserverEntry[]) => {
         entries.forEach(async entry => {
             if (entry.isIntersecting) {
                 const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-                localStorage.setItem(entryTarget.getAttribute(DATA_LEVEL_THREE_HREF), Date.now() + "");
+                const levelThreeHref: string = entryTarget.getAttribute(DATA_LEVEL_THREE_HREF);
+                localStorage.setItem(levelThreeHref, Date.now() + "");
+                updateLastRead(document.getElementById(levelThreeHref));
             }
         })
     }
@@ -109,7 +104,7 @@ function observeHMangaImage(levelThreeImage: HTMLImageElement) {
         rootMargin: "0px"
     }
     const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
-    infoObserver.observe(levelThreeImage);
+    infoObserver.observe(image);
 }
 
 
@@ -118,22 +113,29 @@ async function getNhMangaImages(levelThreeHref: string, retry: boolean = true): 
     const chapter: Document = await getResponseDocument(levelThreeHref, retry);
     if (chapter !== null) {
         const viewports: number[] = [];
-        const readerAreaChildren: HTMLCollectionOf<Element> = chapter.getElementById("readerarea").children;
+        const readerAreaChildren: HTMLCollectionOf<HTMLElement> = chapter.getElementById("readerarea").children as HTMLCollectionOf<HTMLElement>;
         for (let i: number = 0; i < readerAreaChildren.length; i++) {
             // find all the indexes of the children that have the class ai-viewport-2
             if (readerAreaChildren[i].getAttribute(CLASS)?.includes("ai-viewport-2")) {
                 viewports.push(i);
             }
         }
-        viewports.pop(); // remove the last image (it's the credits image)
         for (const viewport of viewports) {
             // the index of the p tags are always 2 more than the index of the viewports
             // the p tag contains only the image
-            const levelThreeImage: HTMLImageElement = readerAreaChildren[viewport + 2].children[0] as HTMLImageElement;
-            const image: HTMLImageElement = new Image();
-            image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
-            image.setAttribute(DATA_SRC, levelThreeImage.getAttribute(DATA_CFSRC))
-            images.push(image)
+            const parent: HTMLElement = readerAreaChildren[viewport + 2];
+            if (parent !== undefined) {
+                const levelThreeImage: HTMLImageElement = readerAreaChildren[viewport + 2].children[0] as HTMLImageElement;
+                if (levelThreeImage !== undefined) {
+                    const dataCfsrc = levelThreeImage.getAttribute(DATA_CFSRC);
+                    if (dataCfsrc !== null) {
+                        const image: HTMLImageElement = new Image();
+                        image.setAttribute(DATA_LEVEL_THREE_HREF, levelThreeHref);
+                        image.setAttribute(DATA_SRC, levelThreeImage.getAttribute(DATA_CFSRC));
+                        images.push(image);
+                    }
+                }
+            }
         }
     }
 
@@ -174,6 +176,7 @@ function observeNhMangaImage(image: HTMLImageElement) {
                 const levelThreeHref = observedImage.getAttribute(DATA_LEVEL_THREE_HREF);
                 infoContent.innerText = levelThreeHref;
                 localStorage.setItem(levelThreeHref, Date.now() + "");
+                updateLastRead(document.getElementById(levelThreeHref));
             }
         })
     }
@@ -211,7 +214,7 @@ function loadNextChapter(images: HTMLImageElement[], levelThreeContainer: HTMLDi
 }
 
 function getNextChapterHref(images: HTMLImageElement[]): string {
-    const href: string = images[0].getAttribute(DATA_LEVEL_TWO_HREF);
+    const href: string = images[0].getAttribute(DATA_LEVEL_THREE_HREF);
     const parts: string[] = href.split(HYPHEN);
     const chapterString: string = "chapter";
     const indexOfChapter: number = parts.indexOf(chapterString);
