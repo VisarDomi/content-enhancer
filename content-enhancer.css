@@ -2,6 +2,7 @@
 body {
     margin: 0;
     background-color: black;
+    padding-top: 100px;
     padding-bottom: 200px;
 }
 
@@ -11,7 +12,7 @@ img, video {
 }
 
 video {
-    margin: 100px 0;
+    margin-bottom: 100px;
 }
 
 .loading {
