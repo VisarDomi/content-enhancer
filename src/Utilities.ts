@@ -28,12 +28,12 @@ class Utilities {
         if (response.status === statusOk) { // the base case, the response was successful
             returnedResponse = response;
         } else if (retry) {
-            failedHref["waitTime"] += this.randomNumber(0, 1000); // the base wait time is between one and two seconds
-            if (failedHref["href"] === href) { // the request has previously failed
-                failedHref["waitTime"] *= this.randomNumber(2, 3); // double the wait time (on average) for each failed attempt
+            failedHref.waitTime += this.randomNumber(0, 1000); // the base wait time is between one and two seconds
+            if (failedHref.href === href) { // the request has previously failed
+                failedHref.waitTime *= this.randomNumber(2, 3); // double the wait time (on average) for each failed attempt
             }
-            failedHref["href"] = href; // save the failed request
-            await this.waitFor(failedHref["waitTime"]);
+            failedHref.href = href; // save the failed request
+            await this.waitFor(failedHref.waitTime);
             returnedResponse = await this.getResponse(href, true, failedHref);
         }
 
@@ -185,24 +185,5 @@ class Utilities {
         lastRead.innerText = lastReadInnerText;
     }
 
-    public static getNextChapterHref(href: string): string {
-        const parts: string[] = href.split(Utilities.HYPHEN);
-        const chapterString: string = "chapter";
-        const indexOfChapter: number = parts.indexOf(chapterString);
-        const end: string = parts[indexOfChapter + 1];
-        const chapterNumber: string = end.substring(0, end.length - 1);
-        let nextChapterNumber: number;
-        if (end.includes(Utilities.PERIOD)) { // we are on a half chapter, skip this and get the next one
-            nextChapterNumber = parseInt(chapterNumber.split(Utilities.PERIOD)[0]) + 1;
-        } else {
-            nextChapterNumber = parseInt(chapterNumber) + 1;
-        }
-        let nextChapterHref: string = Utilities.EMPTY_STRING;
-        for (let i: number = 0; i < indexOfChapter; i++) {
-            nextChapterHref += parts[i] + Utilities.HYPHEN;
-        }
-        nextChapterHref += chapterString + Utilities.HYPHEN + nextChapterNumber + "/";
-        return nextChapterHref;
-    }
 }
 
