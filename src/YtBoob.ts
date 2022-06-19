@@ -1,45 +1,37 @@
-class TokyoMotion extends Video {
+class YtBoob extends Video {
     constructor(href: string) {
         super(href);
     }
 
     // level one
     protected getAnchor(): HTMLAnchorElement {
-        return this.searchResultsDocument.querySelector(".prevnext") as HTMLAnchorElement;
+        return this.searchResultsDocument.querySelectorAll(".pagination-nav")[1].children[0] as HTMLAnchorElement;
     }
 
     protected getSearchResultsThumbnails(): HTMLElement[] {
         const thumbnailCollection: HTMLElement[] = [];
-        const selectedElements: NodeListOf<HTMLAnchorElement> = this.searchResultsDocument.querySelectorAll(".thumb-popu") as NodeListOf<HTMLAnchorElement>;
+        const selectedElements: HTMLCollectionOf<HTMLAnchorElement> = this.searchResultsDocument.querySelectorAll(".videos-list")[1].children as HTMLCollectionOf<HTMLAnchorElement>;
         thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
-
-        if (thumbnailCollection.length === 75) { // we are on the landing page
-            thumbnailCollection.splice(0, 63); // we need only the last 12 thumbnails
-        }
 
         return thumbnailCollection;
     }
 
     protected appendThumbnailContainer(searchResultsThumbnail: HTMLElement): void {
-        const levelTwoAnchor: HTMLAnchorElement = searchResultsThumbnail as HTMLAnchorElement;
+        const levelTwoAnchor: HTMLAnchorElement = searchResultsThumbnail.children[0] as HTMLAnchorElement;
         const thumbOverlayChildren: HTMLCollectionOf<HTMLElement> = levelTwoAnchor.children[0].children as HTMLCollectionOf<HTMLElement>;
         const thumbnail: HTMLImageElement = thumbOverlayChildren[0] as HTMLImageElement;
-        const duration: HTMLDivElement = thumbOverlayChildren[thumbOverlayChildren.length - 1] as HTMLDivElement;
+        const duration: HTMLSpanElement = thumbOverlayChildren[thumbOverlayChildren.length - 1] as HTMLSpanElement;
         thumbnail.setAttribute(Content.DATA_DURATION, duration.innerText.trim());
+        thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
     // level two
     protected getVideo(videoDocument: Document): HTMLVideoElement {
-        return videoDocument.getElementById("vjsplayer") as HTMLVideoElement;
+        return videoDocument.getElementById("wpst-video") as HTMLVideoElement;
     }
 
     protected getSource(source: HTMLSourceElement): string {
-        let returnedSource = null;
-        if (source.src.includes("/hd/")) {
-            returnedSource = source.src;
-        }
-
-        return returnedSource;
+        return source.src;
     }
 }

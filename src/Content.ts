@@ -51,7 +51,7 @@ abstract class Content implements IContent {
     private setNextSearchResultsHref(): void {
         this.nextSearchResultsHref = null;
         const anchor: HTMLAnchorElement = this.getAnchor();
-        if (anchor !== null) {
+        if (anchor && anchor.href !== undefined) {
             this.nextSearchResultsHref = anchor.href;
         }
     }

@@ -186,6 +186,8 @@ function createContent(href: string): Content {
         content = new TokyoMotion(href);
     } else if (href.includes("kissjav")) {
         content = new KissJav(href);
+    } else if (href.includes("ytboob")) {
+        content = new YtBoob(href);
     } else if (href.includes("nhentai")) {
         content = new NHentai(href);
     } else if (href.includes("exhentai") || href.includes("e-hentai")) {

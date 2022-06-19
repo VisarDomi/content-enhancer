@@ -10,6 +10,7 @@
 // @grant        none
 // @match        https://www.tokyomotion.net/*
 // @match        https://kissjav.li/*
+// @match        https://ytboob.com/*
 // @match        https://nhentai.net/*
 // @match        https://exhentai.org/*
 // @match        https://e-hentai.org/*
@@ -206,7 +207,7 @@ class Content {
     setNextSearchResultsHref() {
         this.nextSearchResultsHref = null;
         const anchor = this.getAnchor();
-        if (anchor !== null) {
+        if (anchor && anchor.href !== undefined) {
             this.nextSearchResultsHref = anchor.href;
         }
     }
@@ -873,6 +874,39 @@ class KissJav extends Video {
 }
 //# sourceMappingURL=KissJav.js.map
 
+class YtBoob extends Video {
+    constructor(href) {
+        super(href);
+    }
+    // level one
+    getAnchor() {
+        return this.searchResultsDocument.querySelectorAll(".pagination-nav")[1].children[0];
+    }
+    getSearchResultsThumbnails() {
+        const thumbnailCollection = [];
+        const selectedElements = this.searchResultsDocument.querySelectorAll(".videos-list")[1].children;
+        thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
+        return thumbnailCollection;
+    }
+    appendThumbnailContainer(searchResultsThumbnail) {
+        const levelTwoAnchor = searchResultsThumbnail.children[0];
+        const thumbOverlayChildren = levelTwoAnchor.children[0].children;
+        const thumbnail = thumbOverlayChildren[0];
+        const duration = thumbOverlayChildren[thumbOverlayChildren.length - 1];
+        thumbnail.setAttribute(Content.DATA_DURATION, duration.innerText.trim());
+        thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
+        this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    // level two
+    getVideo(videoDocument) {
+        return videoDocument.getElementById("wpst-video");
+    }
+    getSource(source) {
+        return source.src;
+    }
+}
+//# sourceMappingURL=YtBoob.js.map
+
 class NHentai extends HManga {
     constructor(href) {
         super(href);
@@ -1408,6 +1442,9 @@ function createContent(href) {
     }
     else if (href.includes("kissjav")) {
         content = new KissJav(href);
+    }
+    else if (href.includes("ytboob")) {
+        content = new YtBoob(href);
     }
     else if (href.includes("nhentai")) {
         content = new NHentai(href);

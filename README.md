@@ -13,7 +13,6 @@ A userscript which enhances the navigation of manga sites:
 - load all the chapters in a long strip format
 
 ## TODO:
-- add ytboob to the list -> implementing 1stkissmanga was easy
 - save/load the position of the search results
 - add a loading animation in every appropriate place
 - add gifs to the Features subheading
