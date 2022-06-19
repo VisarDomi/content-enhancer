@@ -13,6 +13,6 @@ A userscript which enhances the navigation of manga sites:
 - load all the chapters in a long strip format
 
 ## TODO:
-- add ytboob, e-hentai, and 1stkissmanga to the list -> how easy is it to implement using OOP?
+- add ytboob, and 1stkissmanga to the list -> implementing exhentai was not so easy
 - save/load the position of the search results
 - add gifs to the Features subheading

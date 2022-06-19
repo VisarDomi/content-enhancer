@@ -71,6 +71,7 @@ video {
     width: 100%;
     height: 30vh;
     background-color: hsl(0, 50%, 25%);
+    margin-top: -100px;
 }
 
 .refresh, .chapter-button {

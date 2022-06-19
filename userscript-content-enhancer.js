@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         Content Enhancer
 // @namespace    visardomi4@gmail.com
-// @version      0.1
+// @version      1.0
 // @description  Enhance the content
 // @author       Visar Domi
 // @match        https://www.asurascans.com/*
-// @match        https://nhentai.net/*
-// @match        https://www.tokyomotion.net/*
-// @match        https://kissjav.li/*
 // @run-at       document-start
 // @grant        none
+// @match        https://www.tokyomotion.net/*
+// @match        https://kissjav.li/*
+// @match        https://nhentai.net/*
+// @match        https://exhentai.org/*
+// @match        https://e-hentai.org/*
 // ==/UserScript==
 
 class Utilities {
@@ -19,6 +21,9 @@ class Utilities {
         if (response !== null) {
             const text = await response.text();
             returnedDocument = new DOMParser().parseFromString(text, "text/html");
+            const base = document.createElement("base");
+            base.href = href;
+            returnedDocument.head.appendChild(base);
         }
         return returnedDocument;
     }
@@ -277,6 +282,7 @@ video {
     width: 100%;
     height: 30vh;
     background-color: hsl(0, 50%, 25%);
+    margin-top: -100px;
 }
 
 .refresh, .chapter-button {
@@ -393,6 +399,9 @@ function createContent(href) {
     else if (href.includes(Content.NHENTAI)) {
         content = new NHentai(href);
     }
+    else if (href.includes(Content.EXHENTAI) || href.includes(Content.EHENTAI)) {
+        content = new ExHentai(href);
+    }
     else if (href.includes(Content.ASURASCANS)) {
         content = new AsuraScans(href);
     }
@@ -471,18 +480,29 @@ class Content {
             thumbnail.onerror = async () => {
                 await Utilities.onImageLoadError(thumbnail);
             };
-            if (index === thumbnailContainersLength - 1 && container.id === Content.L1_CONTAINER_ID) {
-                thumbnail.className = Content.OBSERVE_THUMBNAIL;
+            if (index === thumbnailContainersLength - 1) {
+                if (container.id === Content.L1_CONTAINER_ID) {
+                    thumbnail.className = Content.OBSERVE_THUMBNAIL;
+                }
+                else if (container.id === Content.L2_CONTAINER_ID) {
+                    thumbnail.className = Content.OBSERVE_GALLERY_THUMBNAIL;
+                }
             }
             container.appendChild(thumbnailContainer);
         }
-        else if (index === thumbnailContainersLength && container.id === Content.L1_CONTAINER_ID) {
-            this.observeLastThumbnail();
-            for (const thumbnailContainer of thumbnailContainers) {
-                await this.updateThumbnailContainer(thumbnailContainer);
+        else if (index === thumbnailContainersLength) {
+            if (container.id === Content.L1_CONTAINER_ID) {
+                this.observeLastThumbnail();
+                for (const thumbnailContainer of thumbnailContainers) {
+                    await this.updateThumbnailContainer(thumbnailContainer);
+                }
+            }
+            else if (container.id === Content.L2_CONTAINER_ID) {
+                this.observeLastGalleryThumbnail(container);
             }
         }
     }
+    observeLastGalleryThumbnail(levelTwoContainer) { }
     observeLastThumbnail() {
         const callback = (entries, observer) => {
             entries.forEach(async (entry) => {
@@ -517,6 +537,8 @@ class Content {
 Content.TOKYOMOTION = "tokyomotion";
 Content.KISSJAV = "kissjav";
 Content.NHENTAI = "nhentai";
+Content.EXHENTAI = "exhentai";
+Content.EHENTAI = "e-hentai";
 Content.ASURASCANS = "asurascans";
 Content.L1_CONTAINER_ID = "level-one-container";
 Content.L2_CONTAINER_ID = "level-two-container";
@@ -530,6 +552,7 @@ Content.DATA_DURATION = "data-duration";
 Content.LEVEL_ONE_THUMBNAIL_CONTAINER = "level-one-thumbnail-container";
 Content.LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
 Content.OBSERVE_THUMBNAIL = "observe-thumbnail";
+Content.OBSERVE_GALLERY_THUMBNAIL = "observe-gallery-thumbnail";
 Content.OBSERVE_IMAGE = "observe-image";
 Content.EPH_NUM = "eph-num";
 Content.THUMBS = "thumbs";
@@ -663,10 +686,10 @@ class Manga extends Content {
     // level one
     async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
         const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
-        const mangaCollection = this.getMangaCollection(mangaDocument);
-        this.updateLevelOneManga(mangaCollection, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
+        this.updateLevelOneManga(mangaDocument, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
     }
-    updateLevelOneManga(mangaCollection, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
+    updateLevelOneManga(mangaDocument, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
+        const mangaCollection = this.getMangaCollection(mangaDocument);
         lastReadOne.innerText = "Never watched before";
         lastReadTwo.innerText = "New";
         const readCollection = [];
@@ -692,7 +715,7 @@ class Manga extends Content {
             lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
         }
         lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
-        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(mangaCollection);
+        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(mangaDocument);
     }
     // level two
     async loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
@@ -715,8 +738,7 @@ class Manga extends Content {
         };
         levelTwoContainer.appendChild(backButton);
         // get the gallery thumbnails
-        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
-        this.loadManga(levelTwoContainer, mangaDocument);
+        await this.loadManga(levelTwoContainer);
     }
     // level three
     async loadLevelThree(elementContainer, levelTwoScrollPosition, infoClicked = false) {
@@ -762,6 +784,10 @@ class Manga extends Content {
     }
 }
 class HManga extends Manga {
+    constructor() {
+        super(...arguments);
+        this.nextLevelTwoHref = null;
+    }
     // level one
     getLastReadTwoInnerText(lastReadItemName) {
         return "Page " + lastReadItemName;
@@ -770,14 +796,21 @@ class HManga extends Manga {
         return "Total pages:";
     }
     // level two
-    async loadManga(levelTwoContainer, mangaDocument) {
+    setNextLevelTwoHref(mangaDocument) {
+        this.nextLevelTwoHref = null;
+    }
+    async loadManga(levelTwoContainer) {
+        if (this.nextLevelTwoHref === null) {
+            this.nextLevelTwoHref = levelTwoContainer.getAttribute(HManga.DATA_LEVEL_TWO_HREF);
+        }
+        const mangaDocument = await Utilities.getResponseDocument(this.nextLevelTwoHref);
+        this.setNextLevelTwoHref(mangaDocument);
         levelTwoContainer.style.flexDirection = "row";
         levelTwoContainer.style.flexWrap = "wrap";
         const levelTwoThumbnailContainers = [];
         this.removeExtraDiv();
         const galleryThumbnailsList = this.getMangaCollection(mangaDocument);
-        for (let i = 0; i < galleryThumbnailsList.length; i++) {
-            const galleryThumbnailElement = galleryThumbnailsList[i];
+        for (const galleryThumbnailElement of galleryThumbnailsList) {
             const levelThreeAnchor = this.getLevelThreeAnchor(galleryThumbnailElement);
             const levelTwoThumbnail = this.getLevelTwoThumbnail(levelThreeAnchor);
             const thumbnailContainer = Utilities.createTagWithClassName("div", Content.LEVEL_TWO_THUMBNAIL_CONTAINER);
@@ -787,7 +820,7 @@ class HManga extends Manga {
                 await this.loadLevelThree(thumbnailContainer, window.scrollY);
             };
             const galleryThumbnail = new Image();
-            galleryThumbnail.setAttribute(Content.DATA_SRC, levelTwoThumbnail.getAttribute(Content.DATA_SRC));
+            galleryThumbnail.setAttribute(Content.DATA_SRC, levelTwoThumbnail.src);
             thumbnailContainer.append(galleryThumbnail);
             // add the last read information next to the button
             const lastReadContainer = Utilities.createTagWithClassName("div", "latest-container");
@@ -796,20 +829,21 @@ class HManga extends Manga {
             Utilities.updateLastRead(lastRead);
             lastReadContainer.appendChild(lastRead);
             const pageNumber = Utilities.createTagWithClassName("span", "gallery-page");
-            pageNumber.innerText = (i + 1) + "";
+            pageNumber.innerText = this.getPageNumber(levelTwoThumbnail);
             lastReadContainer.appendChild(pageNumber);
             thumbnailContainer.appendChild(lastReadContainer);
             levelTwoThumbnailContainers.push(thumbnailContainer);
         }
         await this.loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
     }
+    removeExtraDiv() { }
     // level three
     async loadImages(levelThreeContainer) {
         const levelThreeHref = levelThreeContainer.getAttribute(Content.DATA_LEVEL_THREE_HREF);
         if (levelThreeHref !== null && !this.breakLoop) {
             const imageDocument = await Utilities.getResponseDocument(levelThreeHref);
             // append the image to the container
-            const levelThreeImage = this.getLevelThreeImage(imageDocument);
+            const levelThreeImage = await this.getLevelThreeImage(imageDocument);
             const image = new Image();
             image.src = levelThreeImage.src;
             image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
@@ -854,8 +888,9 @@ class NhManga extends Manga {
         return "Last available:";
     }
     // level two
-    loadManga(levelTwoContainer, mangaDocument) {
+    async loadManga(levelTwoContainer) {
         levelTwoContainer.style.flexDirection = "column";
+        const mangaDocument = await Utilities.getResponseDocument(levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF));
         const chapters = this.getMangaCollection(mangaDocument);
         for (const chapter of chapters) {
             const levelThreeAnchor = this.getLevelThreeAnchor(chapter);
@@ -1080,7 +1115,8 @@ class NHentai extends HManga {
         const parts = levelThreeHref.split("/");
         return parts[parts.length - 2]; // the penultimate part
     }
-    getLastAvailableTwoInnerText(mangaCollection) {
+    getLastAvailableTwoInnerText(mangaDocument) {
+        const mangaCollection = this.getMangaCollection(mangaDocument);
         return "Page " + mangaCollection.length;
     }
     // level two
@@ -1092,16 +1128,118 @@ class NHentai extends HManga {
         }
     }
     getLevelTwoThumbnail(levelThreeAnchor) {
-        return levelThreeAnchor.children[0];
+        const levelTwoThumbnail = levelThreeAnchor.children[0];
+        levelTwoThumbnail.src = levelTwoThumbnail.getAttribute(Content.DATA_SRC);
+        return levelTwoThumbnail;
+    }
+    getPageNumber(levelTwoThumbnail) {
+        const src = levelTwoThumbnail.getAttribute(NHentai.DATA_SRC);
+        const parts = src.split("/");
+        const pageNumber = parts[parts.length - 1].split("t.jpg")[0];
+        return pageNumber;
     }
     // level three
-    getLevelThreeImage(imageDocument) {
+    async getLevelThreeImage(imageDocument) {
         return imageDocument.getElementById("image-container").children[0].children[0];
     }
     setNextAnchor(imageDocument, levelThreeContainer) {
         // get the next image document href
         const nextAnchor = imageDocument.querySelector(".next");
         if (nextAnchor.href === Utilities.EMPTY_STRING) { // there's always a .next, but .next.href can be empty
+            levelThreeContainer.removeAttribute(Content.DATA_LEVEL_THREE_HREF);
+        }
+        else {
+            levelThreeContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, nextAnchor.href);
+        }
+    }
+}
+class ExHentai extends HManga {
+    constructor(href) {
+        super(href);
+    }
+    // level one
+    getAnchor() {
+        return this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children[10].children[0];
+    }
+    getSearchResultsThumbnails() {
+        const thumbnailCollection = [];
+        const selectedElements = this.searchResultsDocument.querySelector(".itg.gld").children;
+        thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
+        return thumbnailCollection;
+    }
+    appendThumbnailContainer(searchResultsThumbnail) {
+        const levelTwoAnchor = searchResultsThumbnail.children[1].children[0];
+        const thumbnail = levelTwoAnchor.children[0];
+        this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    getMangaCollection(mangaDocument) {
+        const galleryThumbnailCollection = mangaDocument.querySelectorAll(".gdtl");
+        const thumbnails = [];
+        thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+        return thumbnails;
+    }
+    getLevelThreeAnchor(item) {
+        return item.children[0];
+    }
+    getItemName(levelThreeAnchor) {
+        const levelTwoThumbnail = levelThreeAnchor.children[0];
+        return levelTwoThumbnail.alt;
+    }
+    getLastAvailableTwoInnerText(mangaDocument) {
+        const children = mangaDocument.querySelectorAll(".gdt2");
+        const pages = children[children.length - 2].innerText.split(" ")[0];
+        return "Page " + pages;
+    }
+    // level two
+    observeLastGalleryThumbnail(levelTwoContainer) {
+        const callback = (entries, observer) => {
+            entries.forEach(async (entry) => {
+                if (entry.isIntersecting) {
+                    const thumbnail = entry.target;
+                    observer.unobserve(thumbnail);
+                    thumbnail.removeAttribute(Content.CLASS);
+                    if (this.nextLevelTwoHref !== null) {
+                        await this.loadManga(levelTwoContainer);
+                    }
+                }
+            });
+        };
+        const options = {
+            root: null,
+            rootMargin: Content.LOOK_AHEAD
+        };
+        const observer = new IntersectionObserver(callback, options);
+        const thumbnail = document.querySelector(Utilities.PERIOD + Content.OBSERVE_GALLERY_THUMBNAIL);
+        observer.observe(thumbnail);
+    }
+    getLevelTwoThumbnail(levelThreeAnchor) {
+        return levelThreeAnchor.children[0];
+    }
+    getPageNumber(levelTwoThumbnail) {
+        return levelTwoThumbnail.alt;
+    }
+    setNextLevelTwoHref(mangaDocument) {
+        const children = mangaDocument.querySelector(".ptt").children[0].children[0].children;
+        const nextPageChildren = children[children.length - 1].children;
+        if (nextPageChildren.length > 0) {
+            this.nextLevelTwoHref = nextPageChildren[0].href;
+        }
+        else {
+            this.nextLevelTwoHref = null;
+        }
+    }
+    // level three
+    async getLevelThreeImage(imageDocument) {
+        // use nl instead of the image
+        const nl = imageDocument.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+        const nlHref = imageDocument.baseURI + "?nl=" + nl;
+        const nlDocument = await Utilities.getResponseDocument(nlHref);
+        return nlDocument.getElementById("i3").children[0].children[0];
+    }
+    setNextAnchor(imageDocument, levelThreeContainer) {
+        // get the next image document href
+        const nextAnchor = imageDocument.getElementById("next");
+        if (nextAnchor.href === levelThreeContainer.getAttribute(Content.DATA_LEVEL_THREE_HREF)) {
             levelThreeContainer.removeAttribute(Content.DATA_LEVEL_THREE_HREF);
         }
         else {
@@ -1144,7 +1282,8 @@ class AsuraScans extends NhManga {
         const span = levelThreeAnchor.children[0];
         return span.innerText;
     }
-    getLastAvailableTwoInnerText(mangaCollection) {
+    getLastAvailableTwoInnerText(mangaDocument) {
+        const mangaCollection = this.getMangaCollection(mangaDocument);
         const levelThreeAnchor = this.getLevelThreeAnchor(mangaCollection[0]);
         const name = this.getItemName(levelThreeAnchor);
         return Utilities.hyphenateLongWord(name);

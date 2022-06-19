@@ -10,6 +10,9 @@ class Utilities {
         if (response !== null) {
             const text: string = await response.text();
             returnedDocument = new DOMParser().parseFromString(text, "text/html");
+            const base: HTMLBaseElement = document.createElement("base");
+            base.href = href;
+            returnedDocument.head.appendChild(base);
         }
 
         return returnedDocument;
