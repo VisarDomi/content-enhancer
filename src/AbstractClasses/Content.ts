@@ -23,9 +23,6 @@ abstract class Content implements IContent {
     protected static readonly FLEX: string = "flex";
     protected static readonly NONE: string = "none";
     protected static readonly LOADING___: string = "Loading...";
-    protected static readonly DATA_LOAD_STATUS = "data-load-status";
-    protected static readonly LOADED = "loaded";
-    protected static readonly LOADING = "loading";
 
     private readonly href: string;
     protected searchResultsDocument: Document;
@@ -124,7 +121,7 @@ abstract class Content implements IContent {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
             thumbnail.onerror = async () => {
-                await Utilities.onImageLoadError(thumbnail);
+                await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
             if (index === thumbnailContainersLength - 1) {
                 if (container.id === Content.L1_CONTAINER_ID) {

@@ -49,7 +49,11 @@ class KissManga extends NhManga {
         return Utilities.hyphenateLongWord(name);
     }
 
-    // level two
+    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
+        // yeah well, kissmanga throws a lot of 429s
+    }
+
+        // level two
     protected getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string {
         return levelThreeAnchor.innerText.trim();
     };

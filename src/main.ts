@@ -1,30 +1,14 @@
-const CSS_INNER_HTML: string = `/* level 1 */
+const CSS_INNER_HTML: string = `
+/* level 1 */
 body {
     margin: 0;
     background-color: black;
-    padding-top: 100px;
-    padding-bottom: 200px;
+    font-family: -apple-system, sans-serif;
 }
 
 img, video {
     display: block;
     width: 100%;
-}
-
-video {
-    margin-bottom: 100px;
-}
-
-.loading {
-    background-color: hsl(30, 75%, 50%);
-}
-
-.loaded {
-    background-color: hsl(120, 75%, 50%);
-}
-
-.loading > img, .loaded > img {
-    opacity: 0.5;
 }
 
 .level-one-thumbnail-container {
@@ -37,7 +21,6 @@ video {
     display: flex;
     align-items: end;
     width: 100%;
-    font-family: sans-serif;
     color: white;
 }
 
@@ -57,24 +40,25 @@ video {
 }
 
 /* level 2 */
-.go-back-video {
-    width: 100%;
-    height: 100vh;
-    background-color: hsl(0, 50%, 25%);
-}
-
-.refresh {
-    margin: 200px 0;
+#level-two-container {
+    padding-top: 30vh;
 }
 
 .go-back-manga, .go-back {
     width: 100%;
     height: 30vh;
     background-color: hsl(0, 50%, 25%);
-    margin-top: -100px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1;
 }
 
-.refresh, .chapter-button {
+.go-back-manga {
+    opacity: 0.5;
+}
+
+.chapter-button {
     font-size: 1.2rem;
     line-height: 3;
     text-align: center;
@@ -84,7 +68,6 @@ video {
 .chapter-container {
     display: flex;
     font-size: 1.2rem;
-    font-family: sans-serif;
     color: white;
     align-items: center;
 }
@@ -117,9 +100,6 @@ video {
 
 /* level 3 */
 .go-back {
-    position: fixed;
-    left: 0;
-    top: 0;
     animation: fadeout 1s linear 0s 1 normal forwards running;
 }
 
@@ -159,7 +139,6 @@ video {
 .info-content-clicked {
     display: block;
     font-size: 1.1rem;
-    font-family: sans-serif;
     color: white;
     line-height: 2;
     margin: 20px;
@@ -192,8 +171,6 @@ function createContent(href: string): Content {
         content = new NHentai(href);
     } else if (href.includes("exhentai") || href.includes("e-hentai")) {
         content = new ExHentai(href);
-    } else if (href.includes("asurascans")) {
-        content = new AsuraScans(href);
     } else if (href.includes("kissmanga")) {
         content = new KissManga(href);
     }

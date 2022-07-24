@@ -22,7 +22,9 @@ class YtBoob extends Video {
         const thumbnail: HTMLImageElement = thumbOverlayChildren[0] as HTMLImageElement;
         const duration: HTMLSpanElement = thumbOverlayChildren[thumbOverlayChildren.length - 1] as HTMLSpanElement;
         thumbnail.setAttribute(Content.DATA_DURATION, duration.innerText.trim());
-        thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
+        if (thumbnail.src.match(/\.gif/g)) {
+            thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
+        }
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 

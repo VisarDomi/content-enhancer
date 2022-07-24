@@ -4,7 +4,6 @@
 // @version      1.0
 // @description  Enhance the content
 // @author       Visar Domi
-// @match        https://www.asurascans.com/*
 // @match        https://1stkissmanga.io/*
 // @run-at       document-start
 // @grant        none
@@ -264,7 +263,7 @@ class Content {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             };
             thumbnail.onerror = async () => {
-                await Utilities.onImageLoadError(thumbnail);
+                await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             };
             if (index === thumbnailContainersLength - 1) {
                 if (container.id === Content.L1_CONTAINER_ID) {
@@ -344,9 +343,6 @@ Content.BLOCK = "block";
 Content.FLEX = "flex";
 Content.NONE = "none";
 Content.LOADING___ = "Loading...";
-Content.DATA_LOAD_STATUS = "data-load-status";
-Content.LOADED = "loaded";
-Content.LOADING = "loading";
 //# sourceMappingURL=Content.js.map
 
 class Video extends Content {
@@ -367,79 +363,35 @@ class Video extends Content {
         catch (ignored) {
         }
     }
-    // level two
+    // level two - it doesn't exist for videos
     async loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
+        searchResultsThumbnailContainer.onclick = null;
         const levelTwoHref = searchResultsThumbnailContainer.getAttribute(Content.DATA_LEVEL_TWO_HREF);
-        const levelOneContainer = document.getElementById(Content.L1_CONTAINER_ID);
-        const videoLoaded = (searchResultsThumbnailContainer.getAttribute(Content.DATA_LOAD_STATUS) === Content.LOADED);
-        const videoLoading = (searchResultsThumbnailContainer.getAttribute(Content.DATA_LOAD_STATUS) === Content.LOADING);
-        if (videoLoaded) {
-            window.scrollTo({ top: 100 });
-            searchResultsThumbnailContainer.removeAttribute(Content.DATA_LOAD_STATUS); // remove the load status
-            levelOneContainer.style.display = Content.NONE; // hide level 1
-            document.getElementById(levelTwoHref).style.display = Content.BLOCK; // show level 2
-        }
-        else if (!videoLoading) {
-            // after the first click, the video's load status is loading
-            searchResultsThumbnailContainer.setAttribute(Content.DATA_LOAD_STATUS, Content.LOADING);
-            searchResultsThumbnailContainer.className = Content.LEVEL_ONE_THUMBNAIL_CONTAINER + Utilities.SPACE + Content.LOADING;
-            // create level 2
-            const levelTwoContainer = Utilities.createTagWithId("div", levelTwoHref);
-            levelTwoContainer.style.display = Content.NONE;
-            document.querySelector("body").appendChild(levelTwoContainer);
-            const levelTwoVideo = this.createLevelTwoVideo(searchResultsThumbnailContainer);
-            const bestSource = await this.getBestSource(levelTwoHref);
-            levelTwoVideo.appendChild(bestSource);
-            levelTwoContainer.appendChild(levelTwoVideo);
-            // the go back button
-            const backButton = Utilities.createTagWithId("div", "go-to-level-one");
-            backButton.className = "go-back-video";
-            const intervalId = setInterval(() => {
-                const video = {
-                    lastWatched: Date.now(),
-                    currentTime: levelTwoVideo.currentTime
-                };
-                localStorage.setItem(levelTwoHref, JSON.stringify(video));
-            }, 1000);
-            backButton.onclick = () => {
-                clearInterval(intervalId);
-                levelOneContainer.style.display = Content.BLOCK; // show level 1
-                levelTwoContainer.remove(); // destroy level 2
-                searchResultsThumbnailContainer.className = Content.LEVEL_ONE_THUMBNAIL_CONTAINER;
-                window.scrollTo({ top: levelOneScrollPosition });
-                const lastWatchedOne = document.getElementById(Content.LAST_WATCHED_1 + levelTwoHref);
-                this.updateThumbnailContainer(lastWatchedOne.parentElement.parentElement.parentElement); // do this asynchronously
+        const levelTwoVideo = this.createLevelTwoVideo();
+        const bestSource = await this.getBestSource(levelTwoHref);
+        levelTwoVideo.appendChild(bestSource);
+        const length = searchResultsThumbnailContainer.children.length;
+        searchResultsThumbnailContainer.children[length - 1].remove(); // remove the last child.
+        searchResultsThumbnailContainer.appendChild(levelTwoVideo);
+        // update last watched
+        const lastWatchedOne = document.getElementById(Content.LAST_WATCHED_1 + levelTwoHref);
+        setInterval(() => {
+            const video = {
+                lastWatched: Date.now(),
+                currentTime: levelTwoVideo.currentTime
             };
-            levelTwoContainer.appendChild(backButton);
-            // refresh should be at the end of the page
-            const refresh = Utilities.createTagWithClassName("button", "refresh");
-            refresh.type = "button";
-            refresh.onclick = () => {
-                levelTwoVideo.load();
-                levelTwoVideo.scrollIntoView();
-            };
-            refresh.innerText = "Reload the video";
-            levelTwoContainer.appendChild(refresh);
-        }
+            localStorage.setItem(levelTwoHref, JSON.stringify(video));
+            this.updateThumbnailContainer(lastWatchedOne.parentElement.parentElement.parentElement);
+        }, 1000);
     }
-    createLevelTwoVideo(searchResultsThumbnailContainer) {
+    createLevelTwoVideo() {
         const levelTwoVideo = document.createElement("video");
         levelTwoVideo.controls = true;
-        levelTwoVideo.preload = "auto";
-        levelTwoVideo.playsInline = true;
         levelTwoVideo.muted = true;
-        levelTwoVideo.onloadedmetadata = async () => {
-            levelTwoVideo.onloadedmetadata = null;
-            // manually autoplay
-            await Utilities.waitFor(100);
-            await levelTwoVideo.play();
-            await Utilities.waitFor(100);
-            levelTwoVideo.pause();
-            // the video is loaded
-            searchResultsThumbnailContainer.setAttribute(Content.DATA_LOAD_STATUS, Content.LOADED);
-            searchResultsThumbnailContainer.className = Content.LEVEL_ONE_THUMBNAIL_CONTAINER + Utilities.SPACE + Content.LOADED;
-        };
+        levelTwoVideo.autoplay = true;
+        levelTwoVideo.playsInline = true;
         levelTwoVideo.onerror = async () => {
+            levelTwoVideo.onerror = null;
             await Utilities.waitFor(Utilities.randomNumber(5000, 10000));
             levelTwoVideo.load();
         };
@@ -473,7 +425,7 @@ class Manga extends Content {
     }
     updateLevelOneManga(mangaDocument, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
         const mangaCollection = this.getMangaCollection(mangaDocument);
-        lastReadOne.innerText = "Never watched before";
+        lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         const readCollection = [];
         let lastReadFound = false;
@@ -894,7 +846,9 @@ class YtBoob extends Video {
         const thumbnail = thumbOverlayChildren[0];
         const duration = thumbOverlayChildren[thumbOverlayChildren.length - 1];
         thumbnail.setAttribute(Content.DATA_DURATION, duration.innerText.trim());
-        thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
+        if (thumbnail.src.match(/\.gif/g)) {
+            thumbnail.src = thumbnail.getAttribute(YtBoob.DATA_SRC);
+        }
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
     // level two
@@ -1079,104 +1033,6 @@ class ExHentai extends HManga {
 }
 //# sourceMappingURL=ExHentai.js.map
 
-class AsuraScans extends NhManga {
-    constructor(href) {
-        super(href);
-    }
-    // level one
-    getAnchor() {
-        return this.searchResultsDocument.querySelector(".r");
-    }
-    getSearchResultsThumbnails() {
-        const thumbnailCollection = [];
-        const selectedElements = this.searchResultsDocument.querySelectorAll(".imgu");
-        thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
-        return thumbnailCollection;
-    }
-    appendThumbnailContainer(searchResultsThumbnail) {
-        const levelTwoAnchor = searchResultsThumbnail.children[0];
-        const thumbnail = levelTwoAnchor.children[0];
-        if (thumbnail.getAttribute(Content.DATA_CFSRC) !== null) {
-            thumbnail.src = thumbnail.getAttribute(Content.DATA_CFSRC);
-        }
-        this.pushThumbnail(thumbnail, levelTwoAnchor);
-    }
-    getMangaCollection(mangaDocument) {
-        const nodeChapters = mangaDocument.querySelectorAll(".eph-num");
-        const chapters = [];
-        chapters.splice(0, 0, ...Array.from(nodeChapters));
-        return chapters;
-    }
-    getLevelThreeAnchor(item) {
-        return item.children[0];
-    }
-    getItemName(levelThreeAnchor) {
-        const span = levelThreeAnchor.children[0];
-        return span.innerText;
-    }
-    getLastAvailableTwoInnerText(mangaDocument) {
-        const mangaCollection = this.getMangaCollection(mangaDocument);
-        const levelThreeAnchor = this.getLevelThreeAnchor(mangaCollection[0]);
-        const name = this.getItemName(levelThreeAnchor);
-        return Utilities.hyphenateLongWord(name);
-    }
-    // level two
-    getChapterButtonInnerText(levelThreeAnchor) {
-        const span = levelThreeAnchor.children[0];
-        return span.innerText;
-    }
-    ;
-    // level three
-    async pushImage(chapter, levelThreeHref, images) {
-        const viewports = [];
-        const readerAreaChildren = chapter.getElementById("readerarea").children;
-        for (let i = 0; i < readerAreaChildren.length; i++) {
-            // find all the indexes of the children that have the class ai-viewport-2
-            if (readerAreaChildren[i].getAttribute(Content.CLASS)?.includes("ai-viewport-2")) {
-                viewports.push(i);
-            }
-        }
-        for (const viewport of viewports) {
-            // the index of the p tags are always 2 more than the index of the viewports
-            // the p tag contains only the image
-            const parent = readerAreaChildren[viewport + 2];
-            if (parent !== undefined) {
-                const levelThreeImage = readerAreaChildren[viewport + 2].children[0];
-                if (levelThreeImage !== undefined) {
-                    const dataCfsrc = levelThreeImage.getAttribute(Content.DATA_CFSRC);
-                    if (dataCfsrc !== null) {
-                        const image = new Image();
-                        image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
-                        image.setAttribute(Content.DATA_SRC, dataCfsrc);
-                        images.push(image);
-                    }
-                }
-            }
-        }
-    }
-    getNextChapterHref(href) {
-        const parts = href.split(Utilities.HYPHEN);
-        const chapterString = "chapter";
-        const indexOfChapter = parts.indexOf(chapterString);
-        const end = parts[indexOfChapter + 1];
-        const chapterNumber = end.substring(0, end.length - 1);
-        let nextChapterNumber;
-        if (end.includes(Utilities.PERIOD)) { // we are on a half chapter, skip this and get the next one
-            nextChapterNumber = parseInt(chapterNumber.split(Utilities.PERIOD)[0]) + 1;
-        }
-        else {
-            nextChapterNumber = parseInt(chapterNumber) + 1;
-        }
-        let nextChapterHref = Utilities.EMPTY_STRING;
-        for (let i = 0; i < indexOfChapter; i++) {
-            nextChapterHref += parts[i] + Utilities.HYPHEN;
-        }
-        nextChapterHref += chapterString + Utilities.HYPHEN + nextChapterNumber + "/";
-        return nextChapterHref;
-    }
-}
-//# sourceMappingURL=AsuraScans.js.map
-
 class KissManga extends NhManga {
     constructor(href) {
         super(href);
@@ -1218,6 +1074,9 @@ class KissManga extends NhManga {
         const name = this.getItemName(levelThreeAnchor);
         return Utilities.hyphenateLongWord(name);
     }
+    async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
+        // yeah well, kissmanga throws a lot of 429s
+    }
     // level two
     getChapterButtonInnerText(levelThreeAnchor) {
         return levelThreeAnchor.innerText.trim();
@@ -1256,33 +1115,17 @@ class KissManga extends NhManga {
 }
 //# sourceMappingURL=KissManga.js.map
 
-const CSS_INNER_HTML = `/* level 1 */
+const CSS_INNER_HTML = `
+/* level 1 */
 body {
     margin: 0;
     background-color: black;
-    padding-top: 100px;
-    padding-bottom: 200px;
+    font-family: -apple-system, sans-serif;
 }
 
 img, video {
     display: block;
     width: 100%;
-}
-
-video {
-    margin-bottom: 100px;
-}
-
-.loading {
-    background-color: hsl(30, 75%, 50%);
-}
-
-.loaded {
-    background-color: hsl(120, 75%, 50%);
-}
-
-.loading > img, .loaded > img {
-    opacity: 0.5;
 }
 
 .level-one-thumbnail-container {
@@ -1295,7 +1138,6 @@ video {
     display: flex;
     align-items: end;
     width: 100%;
-    font-family: sans-serif;
     color: white;
 }
 
@@ -1315,24 +1157,25 @@ video {
 }
 
 /* level 2 */
-.go-back-video {
-    width: 100%;
-    height: 100vh;
-    background-color: hsl(0, 50%, 25%);
-}
-
-.refresh {
-    margin: 200px 0;
+#level-two-container {
+    padding-top: 30vh;
 }
 
 .go-back-manga, .go-back {
     width: 100%;
     height: 30vh;
     background-color: hsl(0, 50%, 25%);
-    margin-top: -100px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1;
 }
 
-.refresh, .chapter-button {
+.go-back-manga {
+    opacity: 0.5;
+}
+
+.chapter-button {
     font-size: 1.2rem;
     line-height: 3;
     text-align: center;
@@ -1342,7 +1185,6 @@ video {
 .chapter-container {
     display: flex;
     font-size: 1.2rem;
-    font-family: sans-serif;
     color: white;
     align-items: center;
 }
@@ -1375,9 +1217,6 @@ video {
 
 /* level 3 */
 .go-back {
-    position: fixed;
-    left: 0;
-    top: 0;
     animation: fadeout 1s linear 0s 1 normal forwards running;
 }
 
@@ -1417,7 +1256,6 @@ video {
 .info-content-clicked {
     display: block;
     font-size: 1.1rem;
-    font-family: sans-serif;
     color: white;
     line-height: 2;
     margin: 20px;
@@ -1451,9 +1289,6 @@ function createContent(href) {
     }
     else if (href.includes("exhentai") || href.includes("e-hentai")) {
         content = new ExHentai(href);
-    }
-    else if (href.includes("asurascans")) {
-        content = new AsuraScans(href);
     }
     else if (href.includes("kissmanga")) {
         content = new KissManga(href);

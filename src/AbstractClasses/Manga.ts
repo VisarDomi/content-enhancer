@@ -9,7 +9,7 @@ abstract class Manga extends Content {
 
     protected updateLevelOneManga(mangaDocument: Document, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
         const mangaCollection: HTMLElement[] = this.getMangaCollection(mangaDocument);
-        lastReadOne.innerText = "Never watched before";
+        lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         const readCollection: { name: string, lastRead: number }[] = [];
         let lastReadFound: boolean = false;
