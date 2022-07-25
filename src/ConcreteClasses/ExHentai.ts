@@ -51,6 +51,13 @@ class ExHentai extends HManga {
             thumbnails.push(...pageThumbnails);
         }
 
+        const levelThreeHrefs: string[] = [];
+        for (const thumbnail of thumbnails) {
+            const anchor: HTMLAnchorElement = thumbnail.children[0] as HTMLAnchorElement;
+            levelThreeHrefs.push(anchor.href);
+        }
+        localStorage.setItem(levelTwoHref, JSON.stringify(levelThreeHrefs));
+
         return thumbnails;
     }
 
@@ -82,8 +89,39 @@ class ExHentai extends HManga {
 
     // level three - it does not exist for exhentai (because of the fullscreen experience)
     protected async loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPosition: number, infoClicked = false): Promise<void> {
-        const levelThreeHref: string = elementContainer.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-        window.open(levelThreeHref, levelThreeHref);
+        const levelThreeHref: string = elementContainer.getAttribute(ExHentai.DATA_LEVEL_THREE_HREF);
+        const levelTwoContainer: HTMLDivElement = document.getElementById(ExHentai.L2_CONTAINER_ID) as HTMLDivElement;
+        const levelTwoHref: string = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
+        localStorage.setItem(levelThreeHref, levelTwoHref);
+
+        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(levelTwoHref)) as string[];
+        let index: number = levelThreeHrefs.indexOf(levelThreeHref);
+        const promises: Promise<Document>[] = [];
+        for (index; index < levelThreeHrefs.length; index++) {
+            const levelThreeHref: string = levelThreeHrefs[index];
+            const promise: Promise<Document> = Utilities.getResponseDocument(levelThreeHref);
+            promises.push(promise);
+        }
+
+        const responses: Document[] = await Promise.all(promises); // parallel requests everywhere
+        const nlPromises: Promise<Document>[] = [];
+        for (const response of responses) {
+            const nl: string = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+            const nlHref: string = response.baseURI + "?nl=" + nl;
+            const nlPromise: Promise<Document> = Utilities.getResponseDocument(nlHref);
+            nlPromises.push(nlPromise);
+        }
+
+        const nlResponses: Document[] = await Promise.all(nlPromises); // parallel requests everywhere
+
+        const srcs: string[] = [];
+        for (const nlResponse of nlResponses) {
+            const nlImage: HTMLImageElement = nlResponse.getElementById("img") as HTMLImageElement;
+            srcs.push(nlImage.src);
+        }
+
+        localStorage.setItem(levelTwoHref, JSON.stringify(srcs));
+        window.open(levelThreeHref, levelTwoHref);
     }
 
     protected async getLevelThreeImage(imageDocument: Document): Promise<HTMLImageElement> {
@@ -103,4 +141,5 @@ class ExHentai extends HManga {
             levelThreeContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, nextAnchor.href);
         }
     }
+
 }

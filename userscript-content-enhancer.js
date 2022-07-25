@@ -196,18 +196,18 @@ class Content {
         this.fullscreen = fullscreen;
     }
     async init() {
+        document.write("<html><head></head><body></body></html>");
+        const body = document.querySelector("body");
+        const head = document.querySelector("head");
+        const levelOneContainer = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID);
+        body.appendChild(levelOneContainer);
+        const styleTag = Utilities.createTagWithId("style", "content-enhancer-css");
+        styleTag.innerHTML = Content.CSS_INNER_HTML;
+        head.appendChild(styleTag);
         if (this.fullscreen) {
             await this.loadFullscreen();
         }
         else {
-            document.write("<html><head></head><body></body></html>");
-            const body = document.querySelector("body");
-            const head = document.querySelector("head");
-            const levelOneContainer = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID);
-            body.appendChild(levelOneContainer);
-            const styleTag = Utilities.createTagWithId("style", "content-enhancer-css");
-            styleTag.innerHTML = Content.CSS_INNER_HTML;
-            head.appendChild(styleTag);
             await this.load();
         }
     }
@@ -327,9 +327,33 @@ class Content {
         const lastAvailableTwo = document.getElementById(Content.LAST_AVAILABLE_2 + levelTwoHref);
         await this.updateLevelOne(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
-    // level three
+    // level three - the fullscreen experience
     async loadFullscreen() {
-        console.log("will it work at once?");
+        const levelOneContainer = document.getElementById(Content.L1_CONTAINER_ID);
+        const levelTwoHref = localStorage.getItem(location.href);
+        const srcs = JSON.parse(localStorage.getItem(levelTwoHref));
+        // the things above can be sent to exhentai
+        for (const src of srcs) {
+            const image = document.createElement("img");
+            image.src = src;
+            image.loading = "lazy";
+            levelOneContainer.appendChild(image);
+        }
+        const pOne = document.createElement("p");
+        levelOneContainer.appendChild(pOne);
+        pOne.innerText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero. Sed dignissim lacinia nunc.`;
+        const pTwo = document.createElement("p");
+        levelOneContainer.appendChild(pTwo);
+        pTwo.innerText = `Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.`;
+        const pThree = document.createElement("p");
+        levelOneContainer.appendChild(pThree);
+        pThree.innerText = `Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilisi. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapien. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus.`;
+        const pFour = document.createElement("p");
+        levelOneContainer.appendChild(pFour);
+        pFour.innerText = `Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc, viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ultrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi. Integer lacinia sollicitudin massa.`;
+        const pFive = document.createElement("p");
+        levelOneContainer.appendChild(pFive);
+        pFive.innerText = `Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales.`;
     }
 }
 Content.CSS_INNER_HTML = `
@@ -1139,6 +1163,12 @@ class ExHentai extends HManga {
             pageThumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
             thumbnails.push(...pageThumbnails);
         }
+        const levelThreeHrefs = [];
+        for (const thumbnail of thumbnails) {
+            const anchor = thumbnail.children[0];
+            levelThreeHrefs.push(anchor.href);
+        }
+        localStorage.setItem(levelTwoHref, JSON.stringify(levelThreeHrefs));
         return thumbnails;
     }
     getLevelThreeAnchor(item) {
@@ -1162,8 +1192,34 @@ class ExHentai extends HManga {
     }
     // level three - it does not exist for exhentai (because of the fullscreen experience)
     async loadLevelThree(elementContainer, levelTwoScrollPosition, infoClicked = false) {
-        const levelThreeHref = elementContainer.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-        window.open(levelThreeHref, levelThreeHref);
+        const levelThreeHref = elementContainer.getAttribute(ExHentai.DATA_LEVEL_THREE_HREF);
+        const levelTwoContainer = document.getElementById(ExHentai.L2_CONTAINER_ID);
+        const levelTwoHref = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
+        localStorage.setItem(levelThreeHref, levelTwoHref);
+        const levelThreeHrefs = JSON.parse(localStorage.getItem(levelTwoHref));
+        let index = levelThreeHrefs.indexOf(levelThreeHref);
+        const promises = [];
+        for (index; index < levelThreeHrefs.length; index++) {
+            const levelThreeHref = levelThreeHrefs[index];
+            const promise = Utilities.getResponseDocument(levelThreeHref);
+            promises.push(promise);
+        }
+        const responses = await Promise.all(promises); // parallel requests everywhere
+        const nlPromises = [];
+        for (const response of responses) {
+            const nl = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+            const nlHref = response.baseURI + "?nl=" + nl;
+            const nlPromise = Utilities.getResponseDocument(nlHref);
+            nlPromises.push(nlPromise);
+        }
+        const nlResponses = await Promise.all(nlPromises); // parallel requests everywhere
+        const srcs = [];
+        for (const nlResponse of nlResponses) {
+            const nlImage = nlResponse.getElementById("img");
+            srcs.push(nlImage.src);
+        }
+        localStorage.setItem(levelTwoHref, JSON.stringify(srcs));
+        window.open(levelThreeHref, levelTwoHref);
     }
     async getLevelThreeImage(imageDocument) {
         // use nl instead of the image
