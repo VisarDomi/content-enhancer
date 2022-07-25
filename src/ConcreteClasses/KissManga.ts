@@ -1,7 +1,6 @@
 class KissManga extends NhManga {
-    constructor(href: string) {
-        super(href);
-        this.searchResultsLookAhead = "500%";
+    constructor() {
+        super(location.href);
     }
 
     // level one

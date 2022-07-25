@@ -1,6 +1,6 @@
 class ExHentai extends HManga {
-    constructor(href: string) {
-        super(href);
+    constructor(fullscreen: boolean = false) {
+        super(location.href, fullscreen);
     }
 
     // level one
@@ -62,7 +62,7 @@ class ExHentai extends HManga {
         }
         const options: {} = {
             root: null,
-            rootMargin: this.lookAhead
+            rootMargin: Content.LOOK_AHEAD
         }
         const observer: IntersectionObserver = new IntersectionObserver(callback, options);
         const thumbnail: HTMLImageElement = document.querySelector(Utilities.PERIOD + Content.OBSERVE_GALLERY_THUMBNAIL) as HTMLImageElement;

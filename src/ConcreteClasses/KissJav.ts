@@ -1,6 +1,6 @@
 class KissJav extends Video {
-    constructor(href: string) {
-        super(href);
+    constructor() {
+        super(location.href);
     }
 
     // level one

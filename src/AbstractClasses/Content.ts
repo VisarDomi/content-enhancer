@@ -1,5 +1,151 @@
 abstract class Content implements IContent {
-    public static readonly L1_CONTAINER_ID: string = "level-one-container";
+    protected static readonly CSS_INNER_HTML: string = `
+/* level 1 */
+body {
+    margin: 0;
+    background-color: black;
+    font-family: -apple-system, sans-serif;
+}
+
+img, video {
+    display: block;
+    width: 100%;
+}
+
+.level-one-thumbnail-container {
+    position: relative;
+}
+
+.latest-container {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    align-items: end;
+    width: 100%;
+    color: white;
+}
+
+.last-watched-element, .last-available-element {
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 50%;
+}
+
+.last-watched-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
+    font-size: 2rem;
+}
+
+.last-available-element {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+}
+
+/* level 2 */
+#level-two-container {
+    padding-top: 30vh;
+}
+
+.go-back-manga, .go-back {
+    width: 100%;
+    height: 30vh;
+    background-color: hsl(0, 50%, 25%);
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1;
+}
+
+.go-back-manga {
+    opacity: 0.5;
+}
+
+.chapter-button {
+    font-size: 1.2rem;
+    line-height: 3;
+    text-align: center;
+    width: 100%;
+}
+
+.chapter-container {
+    display: flex;
+    font-size: 1.2rem;
+    color: white;
+    align-items: center;
+}
+
+.last-read-container {
+    width: 100%;
+}
+
+.last-read {
+    margin-left: 10px;
+}
+
+.level-two-thumbnail-container {
+    position: relative;
+    width: 50%;
+}
+
+.last-read-gallery, .gallery-page {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.last-read-gallery {
+    margin-right: auto;
+}
+
+.gallery-page {
+    margin-left: auto;
+    font-size: 2rem;
+}
+
+/* level 3 */
+.go-back {
+    animation: fadeout 1s linear 0s 1 normal forwards running;
+}
+
+@keyframes fadeout {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.info, .info-clicked {
+    position: fixed;
+    left: 0;
+    top: 30%;
+    height: 30%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.info {
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
+.info-clicked {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.info-content {
+    display: none;
+}
+
+.info-content-clicked {
+    display: block;
+    font-size: 1.1rem;
+    color: white;
+    line-height: 2;
+    margin: 20px;
+}
+`;
+    protected static readonly L1_CONTAINER_ID: string = "level-one-container";
     protected static readonly L2_CONTAINER_ID: string = "level-two-container";
     protected static readonly L3_CONTAINER_ID: string = "level-three-container";
     protected static readonly LOOK_AHEAD: string = "2000%"; // look ahead 20 screens
@@ -25,16 +171,32 @@ abstract class Content implements IContent {
     protected static readonly LOADING___: string = "Loading...";
 
     private readonly href: string;
+    private readonly fullscreen: boolean;
     protected searchResultsDocument: Document;
     protected thumbnailContainers: HTMLDivElement[];
     protected breakLoop: boolean;
     private nextSearchResultsHref: string;
     private searchResultsThumbnails: HTMLElement[];
-    protected searchResultsLookAhead: string = Content.LOOK_AHEAD;
-    protected lookAhead: string = Content.LOOK_AHEAD;
 
-    protected constructor(href: string) {
+    protected constructor(href: string, fullscreen: boolean = false) {
         this.href = href;
+        this.fullscreen = fullscreen;
+    }
+
+    public async init() {
+        if (this.fullscreen) {
+            await this.loadFullscreen();
+        } else {
+            document.write("<html><head></head><body></body></html>");
+            const body = document.querySelector("body");
+            const head = document.querySelector("head");
+            const levelOneContainer: HTMLDivElement = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID) as HTMLDivElement;
+            body.appendChild(levelOneContainer);
+            const styleTag: HTMLScriptElement = Utilities.createTagWithId("style", "content-enhancer-css") as HTMLScriptElement;
+            styleTag.innerHTML = Content.CSS_INNER_HTML;
+            head.appendChild(styleTag);
+            await this.load();
+        }
     }
 
     // level one
@@ -154,14 +316,14 @@ abstract class Content implements IContent {
                     thumbnail.removeAttribute(Content.CLASS);
                     const href: string = this.nextSearchResultsHref;
                     if (href !== null) {
-                        await this.load(href);
+                        await this.load();
                     }
                 }
             })
         }
         const options: {} = {
             root: null,
-            rootMargin: this.searchResultsLookAhead
+            rootMargin: Content.LOOK_AHEAD
         }
         const observer: IntersectionObserver = new IntersectionObserver(callback, options);
         const thumbnail: HTMLImageElement = document.querySelector(Utilities.PERIOD + Content.OBSERVE_THUMBNAIL) as HTMLImageElement;
@@ -182,4 +344,9 @@ abstract class Content implements IContent {
 
     // level two
     protected abstract loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): void;
+
+    // level three
+    public async loadFullscreen(): Promise<void> {
+        console.log("will it work at once?")
+    }
 }

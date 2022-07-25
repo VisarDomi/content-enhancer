@@ -191,10 +191,25 @@ Utilities.PERIOD = ".";
 //# sourceMappingURL=Utilities.js.map
 
 class Content {
-    constructor(href) {
-        this.searchResultsLookAhead = Content.LOOK_AHEAD;
-        this.lookAhead = Content.LOOK_AHEAD;
+    constructor(href, fullscreen = false) {
         this.href = href;
+        this.fullscreen = fullscreen;
+    }
+    async init() {
+        if (this.fullscreen) {
+            await this.loadFullscreen();
+        }
+        else {
+            document.write("<html><head></head><body></body></html>");
+            const body = document.querySelector("body");
+            const head = document.querySelector("head");
+            const levelOneContainer = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID);
+            body.appendChild(levelOneContainer);
+            const styleTag = Utilities.createTagWithId("style", "content-enhancer-css");
+            styleTag.innerHTML = Content.CSS_INNER_HTML;
+            head.appendChild(styleTag);
+            await this.load();
+        }
     }
     // level one
     async load(href = this.href) {
@@ -297,14 +312,14 @@ class Content {
                     thumbnail.removeAttribute(Content.CLASS);
                     const href = this.nextSearchResultsHref;
                     if (href !== null) {
-                        await this.load(href);
+                        await this.load();
                     }
                 }
             });
         };
         const options = {
             root: null,
-            rootMargin: this.searchResultsLookAhead
+            rootMargin: Content.LOOK_AHEAD
         };
         const observer = new IntersectionObserver(callback, options);
         const thumbnail = document.querySelector(Utilities.PERIOD + Content.OBSERVE_THUMBNAIL);
@@ -318,7 +333,157 @@ class Content {
         const lastAvailableTwo = document.getElementById(Content.LAST_AVAILABLE_2 + levelTwoHref);
         await this.updateLevelOne(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
+    // level three
+    async loadFullscreen() {
+        console.log("will it work at once?");
+    }
 }
+Content.CSS_INNER_HTML = `
+/* level 1 */
+body {
+    margin: 0;
+    background-color: black;
+    font-family: -apple-system, sans-serif;
+}
+
+img, video {
+    display: block;
+    width: 100%;
+}
+
+.level-one-thumbnail-container {
+    position: relative;
+}
+
+.latest-container {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    align-items: end;
+    width: 100%;
+    color: white;
+}
+
+.last-watched-element, .last-available-element {
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 50%;
+}
+
+.last-watched-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
+    font-size: 2rem;
+}
+
+.last-available-element {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+}
+
+/* level 2 */
+#level-two-container {
+    padding-top: 30vh;
+}
+
+.go-back-manga, .go-back {
+    width: 100%;
+    height: 30vh;
+    background-color: hsl(0, 50%, 25%);
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1;
+}
+
+.go-back-manga {
+    opacity: 0.5;
+}
+
+.chapter-button {
+    font-size: 1.2rem;
+    line-height: 3;
+    text-align: center;
+    width: 100%;
+}
+
+.chapter-container {
+    display: flex;
+    font-size: 1.2rem;
+    color: white;
+    align-items: center;
+}
+
+.last-read-container {
+    width: 100%;
+}
+
+.last-read {
+    margin-left: 10px;
+}
+
+.level-two-thumbnail-container {
+    position: relative;
+    width: 50%;
+}
+
+.last-read-gallery, .gallery-page {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.last-read-gallery {
+    margin-right: auto;
+}
+
+.gallery-page {
+    margin-left: auto;
+    font-size: 2rem;
+}
+
+/* level 3 */
+.go-back {
+    animation: fadeout 1s linear 0s 1 normal forwards running;
+}
+
+@keyframes fadeout {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.info, .info-clicked {
+    position: fixed;
+    left: 0;
+    top: 30%;
+    height: 30%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.info {
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
+.info-clicked {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.info-content {
+    display: none;
+}
+
+.info-content-clicked {
+    display: block;
+    font-size: 1.1rem;
+    color: white;
+    line-height: 2;
+    margin: 20px;
+}
+`;
 Content.L1_CONTAINER_ID = "level-one-container";
 Content.L2_CONTAINER_ID = "level-two-container";
 Content.L3_CONTAINER_ID = "level-three-container";
@@ -455,7 +620,6 @@ class Manga extends Content {
     // level two
     async loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
         this.breakLoop = false;
-        window.scrollTo({ top: 100 });
         // create level 2
         const levelTwoHref = searchResultsThumbnailContainer.getAttribute(Content.DATA_LEVEL_TWO_HREF);
         const levelTwoContainer = Utilities.createTagWithId("div", Content.L2_CONTAINER_ID);
@@ -556,6 +720,7 @@ class HManga extends Manga {
             const levelThreeHref = levelThreeAnchor.href;
             thumbnailContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             thumbnailContainer.onclick = async () => {
+                // instead of loading level three, open a new tab, and the script should activate with only level 3 logic
                 await this.loadLevelThree(thumbnailContainer, window.scrollY);
             };
             const galleryThumbnail = new Image();
@@ -741,7 +906,7 @@ class NhManga extends Manga {
         };
         const nextChapterOptions = {
             root: null,
-            rootMargin: this.lookAhead
+            rootMargin: Content.LOOK_AHEAD
         };
         const nextChapterObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
         const image = document.querySelector(Utilities.PERIOD + Content.OBSERVE_IMAGE);
@@ -751,8 +916,8 @@ class NhManga extends Manga {
 //# sourceMappingURL=NhManga.js.map
 
 class TokyoMotion extends Video {
-    constructor(href) {
-        super(href);
+    constructor() {
+        super(location.href);
     }
     // level one
     getAnchor() {
@@ -790,8 +955,8 @@ class TokyoMotion extends Video {
 //# sourceMappingURL=TokyoMotion.js.map
 
 class KissJav extends Video {
-    constructor(href) {
-        super(href);
+    constructor() {
+        super(location.href);
     }
     // level one
     getAnchor() {
@@ -836,8 +1001,8 @@ class KissJav extends Video {
 //# sourceMappingURL=KissJav.js.map
 
 class YtBoob extends Video {
-    constructor(href) {
-        super(href);
+    constructor() {
+        super(location.href);
     }
     // level one
     getAnchor() {
@@ -871,8 +1036,8 @@ class YtBoob extends Video {
 //# sourceMappingURL=YtBoob.js.map
 
 class NHentai extends HManga {
-    constructor(href) {
-        super(href);
+    constructor(fullscreen = false) {
+        super(location.href, fullscreen);
     }
     // level one
     getAnchor() {
@@ -910,6 +1075,9 @@ class NHentai extends HManga {
         const mangaCollection = this.getMangaCollection(mangaDocument);
         return "Page " + mangaCollection.length;
     }
+    async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
+        // yeah well, nhentai is throwing cloudflare errors, we need to change the logic
+    }
     // level two
     removeExtraDiv() {
         // remove a div that gets added from other scripts:
@@ -926,7 +1094,10 @@ class NHentai extends HManga {
     getPageNumber(levelTwoThumbnail) {
         const src = levelTwoThumbnail.getAttribute(NHentai.DATA_SRC);
         const parts = src.split("/");
-        const pageNumber = parts[parts.length - 1].split("t.jpg")[0];
+        let pageNumber = parts[parts.length - 1].split("t.jpg")[0];
+        if (pageNumber.match(/t\.png/g).length) {
+            pageNumber = parts[parts.length - 1].split("t.png")[0];
+        }
         return pageNumber;
     }
     // level three
@@ -947,8 +1118,8 @@ class NHentai extends HManga {
 //# sourceMappingURL=NHentai.js.map
 
 class ExHentai extends HManga {
-    constructor(href) {
-        super(href);
+    constructor(fullscreen = false) {
+        super(location.href, fullscreen);
     }
     // level one
     getAnchor() {
@@ -999,7 +1170,7 @@ class ExHentai extends HManga {
         };
         const options = {
             root: null,
-            rootMargin: this.lookAhead
+            rootMargin: Content.LOOK_AHEAD
         };
         const observer = new IntersectionObserver(callback, options);
         const thumbnail = document.querySelector(Utilities.PERIOD + Content.OBSERVE_GALLERY_THUMBNAIL);
@@ -1043,9 +1214,8 @@ class ExHentai extends HManga {
 //# sourceMappingURL=ExHentai.js.map
 
 class KissManga extends NhManga {
-    constructor(href) {
-        super(href);
-        this.searchResultsLookAhead = "500%";
+    constructor() {
+        super(location.href);
     }
     // level one
     getAnchor() {
@@ -1106,185 +1276,38 @@ class KissManga extends NhManga {
 }
 //# sourceMappingURL=KissManga.js.map
 
-const CSS_INNER_HTML = `
-/* level 1 */
-body {
-    margin: 0;
-    background-color: black;
-    font-family: -apple-system, sans-serif;
-}
-
-img, video {
-    display: block;
-    width: 100%;
-}
-
-.level-one-thumbnail-container {
-    position: relative;
-}
-
-.latest-container {
-    position: absolute;
-    bottom: 0;
-    display: flex;
-    align-items: end;
-    width: 100%;
-    color: white;
-}
-
-.last-watched-element, .last-available-element {
-    background-color: rgba(0, 0, 0, 0.5);
-    width: 50%;
-}
-
-.last-watched-element > div:nth-child(2), .last-available-element > div:nth-child(2) {
-    font-size: 2rem;
-}
-
-.last-available-element {
-    display: flex;
-    flex-direction: column;
-    align-items: end;
-}
-
-/* level 2 */
-#level-two-container {
-    padding-top: 30vh;
-}
-
-.go-back-manga, .go-back {
-    width: 100%;
-    height: 30vh;
-    background-color: hsl(0, 50%, 25%);
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 1;
-}
-
-.go-back-manga {
-    opacity: 0.5;
-}
-
-.chapter-button {
-    font-size: 1.2rem;
-    line-height: 3;
-    text-align: center;
-    width: 100%;
-}
-
-.chapter-container {
-    display: flex;
-    font-size: 1.2rem;
-    color: white;
-    align-items: center;
-}
-
-.last-read-container {
-    width: 100%;
-}
-
-.last-read {
-    margin-left: 10px;
-}
-
-.level-two-thumbnail-container {
-    position: relative;
-    width: 50%;
-}
-
-.last-read-gallery, .gallery-page {
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.last-read-gallery {
-    margin-right: auto;
-}
-
-.gallery-page {
-    margin-left: auto;
-    font-size: 2rem;
-}
-
-/* level 3 */
-.go-back {
-    animation: fadeout 1s linear 0s 1 normal forwards running;
-}
-
-@keyframes fadeout {
-    0% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-    }
-}
-
-.info, .info-clicked {
-    position: fixed;
-    left: 0;
-    top: 30%;
-    height: 30%;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.info {
-    background-color: rgba(0, 0, 0, 0.0);
-}
-
-.info-clicked {
-    background-color: rgba(0, 0, 0, 0.7);
-}
-
-.info-content {
-    display: none;
-}
-
-.info-content-clicked {
-    display: block;
-    font-size: 1.1rem;
-    color: white;
-    line-height: 2;
-    margin: 20px;
-}
-`;
-function loadContent() {
-    document.write("<html><head></head><body></body></html>");
-    const body = document.querySelector("body");
-    const head = document.querySelector("head");
-    const levelOneContainer = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID);
-    body.appendChild(levelOneContainer);
-    const styleTag = Utilities.createTagWithId("style", "content-enhancer-css");
-    styleTag.innerHTML = CSS_INNER_HTML;
-    head.appendChild(styleTag);
-    const content = createContent(location.href);
-    content?.load(); // asynchronously
-}
-function createContent(href) {
+async function load() {
+    const href = location.href;
     let content = null;
     if (href.includes("tokyomotion")) {
-        content = new TokyoMotion(href);
+        content = new TokyoMotion();
     }
     else if (href.includes("kissjav")) {
-        content = new KissJav(href);
+        content = new KissJav();
     }
     else if (href.includes("ytboob")) {
-        content = new YtBoob(href);
+        content = new YtBoob();
     }
     else if (href.includes("nhentai")) {
-        content = new NHentai(href);
+        if (href.match(/\//g).length !== 6) {
+            content = new NHentai();
+        }
+        else {
+            content = new NHentai(true);
+        }
     }
     else if (href.includes("exhentai") || href.includes("e-hentai")) {
-        content = new ExHentai(href);
+        if (href.match(/\//g).length !== 5) {
+            content = new ExHentai();
+        }
+        else {
+            content = new ExHentai(true);
+        }
     }
     else if (href.includes("kissmanga")) {
-        content = new KissManga(href);
+        content = new KissManga();
     }
-    return content;
+    await content?.init();
 }
-loadContent();
+load();
 //# sourceMappingURL=main.js.map

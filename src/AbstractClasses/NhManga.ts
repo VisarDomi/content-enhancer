@@ -139,7 +139,7 @@ abstract class NhManga extends Manga {
         }
         const nextChapterOptions: {} = {
             root: null,
-            rootMargin: this.lookAhead
+            rootMargin: Content.LOOK_AHEAD
         }
         const nextChapterObserver: IntersectionObserver = new IntersectionObserver(nextChapter, nextChapterOptions);
         const image: HTMLImageElement = document.querySelector(Utilities.PERIOD + Content.OBSERVE_IMAGE) as HTMLImageElement;

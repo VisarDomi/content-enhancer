@@ -37,6 +37,7 @@ abstract class HManga extends Manga {
             const levelThreeHref: string = levelThreeAnchor.href;
             thumbnailContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             thumbnailContainer.onclick = async () => {
+                // instead of loading level three, open a new tab, and the script should activate with only level 3 logic
                 await this.loadLevelThree(thumbnailContainer, window.scrollY);
             }
 

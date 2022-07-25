@@ -1,6 +1,6 @@
 class NHentai extends HManga {
-    constructor(href: string) {
-        super(href);
+    constructor(fullscreen: boolean = false) {
+        super(location.href, fullscreen);
     }
 
     // level one
@@ -49,6 +49,10 @@ class NHentai extends HManga {
         return "Page " + mangaCollection.length;
     }
 
+    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
+        // yeah well, nhentai is throwing cloudflare errors, we need to change the logic
+    }
+
     // level two
     protected removeExtraDiv(): void {
         // remove a div that gets added from other scripts:
@@ -67,7 +71,10 @@ class NHentai extends HManga {
     protected getPageNumber(levelTwoThumbnail: HTMLImageElement): string {
         const src: string = levelTwoThumbnail.getAttribute(NHentai.DATA_SRC);
         const parts: string[] = src.split("/");
-        const pageNumber: string = parts[parts.length - 1].split("t.jpg")[0];
+        let pageNumber: string = parts[parts.length - 1].split("t.jpg")[0];
+        if (pageNumber.match(/t\.png/g).length) {
+            pageNumber = parts[parts.length - 1].split("t.png")[0];
+        }
 
         return pageNumber;
     }

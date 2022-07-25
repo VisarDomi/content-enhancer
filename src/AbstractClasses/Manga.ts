@@ -52,7 +52,6 @@ abstract class Manga extends Content {
     // level two
     protected async loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
         this.breakLoop = false;
-        window.scrollTo({top: 100});
 
         // create level 2
         const levelTwoHref: string = searchResultsThumbnailContainer.getAttribute(Content.DATA_LEVEL_TWO_HREF);
