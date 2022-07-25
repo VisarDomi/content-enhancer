@@ -293,19 +293,13 @@ img, video {
                 }
             }
             container.appendChild(thumbnailContainer);
-        } else if (index === thumbnailContainersLength) {
-            if (container.id === Content.L1_CONTAINER_ID) {
-                this.observeLastThumbnail();
-                for (const thumbnailContainer of thumbnailContainers) {
-                    await this.updateThumbnailContainer(thumbnailContainer);
-                }
-            } else if (container.id === Content.L2_CONTAINER_ID && !this.breakLoop) {
-                this.observeLastGalleryThumbnail(container);
+        } else if (index === thumbnailContainersLength && container.id === Content.L1_CONTAINER_ID) {
+            this.observeLastThumbnail();
+            for (const thumbnailContainer of thumbnailContainers) {
+                await this.updateThumbnailContainer(thumbnailContainer);
             }
         }
     }
-
-    protected observeLastGalleryThumbnail(levelTwoContainer: HTMLDivElement) {}
 
     private observeLastThumbnail() {
         const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {

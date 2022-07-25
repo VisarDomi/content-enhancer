@@ -25,7 +25,8 @@ class KissManga extends NhManga {
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
-    protected getMangaCollection(mangaDocument: Document): HTMLElement[] {
+    protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
+        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const nodeChapters: HTMLCollectionOf<HTMLLIElement> = mangaDocument.querySelector(".main").children as HTMLCollectionOf<HTMLLIElement>;
         const chapters: HTMLElement[] = [];
         chapters.splice(0, 0, ...Array.from(nodeChapters));
@@ -41,11 +42,8 @@ class KissManga extends NhManga {
         return levelThreeAnchor.innerText.trim();
     }
 
-    protected getLastAvailableTwoInnerText(mangaDocument: Document): string {
-        const mangaCollection: HTMLElement[] = this.getMangaCollection(mangaDocument);
-        const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(mangaCollection[0]);
-        const name: string = this.getItemName(levelThreeAnchor);
-        return Utilities.hyphenateLongWord(name);
+    protected getLastAvailableTwoInnerText(): string {
+        return "To be implemented...";
     }
 
     protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {

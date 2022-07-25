@@ -1,14 +1,7 @@
 abstract class Manga extends Content {
     // level one
     protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
-        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
-        this.updateLevelOneManga(mangaDocument, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo);
-    }
-
-    protected abstract getMangaCollection(mangaDocument: Document): HTMLElement[];
-
-    protected updateLevelOneManga(mangaDocument: Document, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
-        const mangaCollection: HTMLElement[] = this.getMangaCollection(mangaDocument);
+        const mangaCollection: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         const readCollection: { name: string, lastRead: number }[] = [];
@@ -36,8 +29,10 @@ abstract class Manga extends Content {
         }
 
         lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
-        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(mangaDocument);
+        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText();
     }
+
+    protected abstract getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]>;
 
     protected abstract getLevelThreeAnchor(item: HTMLElement): HTMLAnchorElement;
 
@@ -47,7 +42,7 @@ abstract class Manga extends Content {
 
     protected abstract getLastAvailableOneInnerText(): string;
 
-    protected abstract getLastAvailableTwoInnerText(mangaCollection: Document): string;
+    protected abstract getLastAvailableTwoInnerText(): string;
 
     // level two
     protected async loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
@@ -83,7 +78,6 @@ abstract class Manga extends Content {
     // level three
     protected async loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPosition: number, infoClicked = false): Promise<void> {
         this.breakLoop = false;
-        window.scrollTo({top: 100});
 
         // create level 3
         const levelTwoContainer: HTMLDivElement = document.getElementById(Content.L2_CONTAINER_ID) as HTMLDivElement;

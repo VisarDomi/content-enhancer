@@ -22,10 +22,34 @@ class ExHentai extends HManga {
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
-    protected getMangaCollection(mangaDocument: Document): HTMLElement[] {
-        const galleryThumbnailCollection: NodeListOf<HTMLDivElement> = mangaDocument.querySelectorAll(".gdtl") as NodeListOf<HTMLDivElement>;
+    protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
+        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
+
+        const children: HTMLTableCellElement[] = [...mangaDocument.querySelector(".ptt").children[0].children[0].children as HTMLCollectionOf<HTMLTableCellElement>];
+        children.pop();
+        children.shift(); // remove the first and last element
+        const lastIndex: number = children.length - 1;
+        const lastChild: HTMLTableCellElement = children[lastIndex];
+        const anchor: HTMLAnchorElement = lastChild.children[0] as HTMLAnchorElement;
+        const lastHref: string = anchor.href;
+        const SEPARATOR: string = "?p=";
+        const pageFormat: string = lastHref.split(SEPARATOR)[0] + SEPARATOR;
+        const lastPage: number = parseInt(lastHref.split(SEPARATOR)[1]);
+
+        const promises: Promise<Document>[] = [];
+        for (let index = 0; index < lastPage + 1; index++) {
+            const pagePromise: Promise<Document> = Utilities.getResponseDocument(pageFormat + index);
+            promises.push(pagePromise);
+        }
+
         const thumbnails: HTMLElement[] = [];
-        thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+        const responses: Document[] = await Promise.all(promises); // parallel requests
+        for (const pageDocument of responses) {
+            const galleryThumbnailCollection: NodeListOf<HTMLDivElement> = pageDocument.querySelectorAll(".gdtl") as NodeListOf<HTMLDivElement>;
+            const pageThumbnails: HTMLElement[] = [];
+            pageThumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+            thumbnails.push(...pageThumbnails);
+        }
 
         return thumbnails;
     }
@@ -40,35 +64,14 @@ class ExHentai extends HManga {
         return levelTwoThumbnail.alt;
     }
 
-    protected getLastAvailableTwoInnerText(mangaDocument: Document): string {
-        const children: NodeListOf<HTMLTableCellElement> = mangaDocument.querySelectorAll(".gdt2") as NodeListOf<HTMLTableCellElement>;
-        const pages: string = children[children.length - 2].innerText.split(" ")[0];
-        return "Page " + pages;
+    protected getLastAvailableTwoInnerText(): string {
+        return "To be implemented...";
+    }
+
+    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
     }
 
     // level two
-    protected observeLastGalleryThumbnail(levelTwoContainer: HTMLDivElement) {
-        const callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
-            entries.forEach(async entry => {
-                if (entry.isIntersecting) {
-                    const thumbnail: HTMLImageElement = entry.target as HTMLImageElement;
-                    observer.unobserve(thumbnail);
-                    thumbnail.removeAttribute(Content.CLASS);
-                    if (this.nextLevelTwoHref !== null) {
-                        await this.loadManga(levelTwoContainer);
-                    }
-                }
-            })
-        }
-        const options: {} = {
-            root: null,
-            rootMargin: Content.LOOK_AHEAD
-        }
-        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
-        const thumbnail: HTMLImageElement = document.querySelector(Utilities.PERIOD + Content.OBSERVE_GALLERY_THUMBNAIL) as HTMLImageElement;
-        observer.observe(thumbnail);
-    }
-
     protected getLevelTwoThumbnail(levelThreeAnchor: HTMLAnchorElement): HTMLImageElement {
         return levelThreeAnchor.children[0] as HTMLImageElement;
     }
@@ -77,17 +80,12 @@ class ExHentai extends HManga {
         return levelTwoThumbnail.alt;
     }
 
-    protected setNextLevelTwoHref(mangaDocument: Document) {
-        const children: HTMLCollectionOf<HTMLTableCellElement> = mangaDocument.querySelector(".ptt").children[0].children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
-        const nextPageChildren: HTMLCollectionOf<HTMLAnchorElement> = children[children.length - 1].children as HTMLCollectionOf<HTMLAnchorElement>;
-        if (nextPageChildren.length > 0) {
-            this.nextLevelTwoHref = nextPageChildren[0].href;
-        } else {
-            this.nextLevelTwoHref = null;
-        }
+    // level three - it does not exist for exhentai (because of the fullscreen experience)
+    protected async loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPosition: number, infoClicked = false): Promise<void> {
+        const levelThreeHref: string = elementContainer.getAttribute(Content.DATA_LEVEL_THREE_HREF);
+        window.open(levelThreeHref, levelThreeHref);
     }
 
-    // level three
     protected async getLevelThreeImage(imageDocument: Document): Promise<HTMLImageElement> {
         // use nl instead of the image
         const nl: string = imageDocument.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];

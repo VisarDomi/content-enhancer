@@ -1,6 +1,4 @@
 abstract class HManga extends Manga {
-    protected nextLevelTwoHref: string = null;
-
     // level one
     protected getLastReadTwoInnerText(lastReadItemName: string): string {
         return "Page " + lastReadItemName;
@@ -11,24 +9,16 @@ abstract class HManga extends Manga {
     }
 
     // level two
-    protected setNextLevelTwoHref(mangaDocument: Document): void {
-        this.nextLevelTwoHref = null;
-    }
-
     protected async loadManga(levelTwoContainer: HTMLDivElement): Promise<void> {
-        if (this.nextLevelTwoHref === null) {
-            this.nextLevelTwoHref = levelTwoContainer.getAttribute(HManga.DATA_LEVEL_TWO_HREF);
-        }
-        const mangaDocument: Document = await Utilities.getResponseDocument(this.nextLevelTwoHref);
-        this.setNextLevelTwoHref(mangaDocument);
-
         levelTwoContainer.style.flexDirection = "row";
         levelTwoContainer.style.flexWrap = "wrap";
         const levelTwoThumbnailContainers: HTMLDivElement[] = [];
 
         this.removeExtraDiv();
 
-        const galleryThumbnailsList: HTMLElement[] = this.getMangaCollection(mangaDocument);
+        const levelTwoHref: string = levelTwoContainer.getAttribute(HManga.DATA_LEVEL_TWO_HREF);
+        const galleryThumbnailsList: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
+
         for (const galleryThumbnailElement of galleryThumbnailsList) {
             const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(galleryThumbnailElement);
             const levelTwoThumbnail: HTMLImageElement = this.getLevelTwoThumbnail(levelThreeAnchor);

@@ -25,7 +25,8 @@ class NHentai extends HManga {
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
-    protected getMangaCollection(mangaDocument: Document): HTMLElement[] {
+    protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
+        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(".thumbs").children as HTMLCollectionOf<HTMLDivElement>;
         const thumbnails: HTMLElement[] = [];
         thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
@@ -44,9 +45,8 @@ class NHentai extends HManga {
         return parts[parts.length - 2]; // the penultimate part
     }
 
-    protected getLastAvailableTwoInnerText(mangaDocument: Document): string {
-        const mangaCollection: HTMLElement[] = this.getMangaCollection(mangaDocument);
-        return "Page " + mangaCollection.length;
+    protected getLastAvailableTwoInnerText(): string {
+        return "To be implemented...";
     }
 
     protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
