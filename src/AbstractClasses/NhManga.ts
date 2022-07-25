@@ -12,11 +12,16 @@ abstract class NhManga extends Manga {
     protected async loadManga(levelTwoContainer: HTMLDivElement): Promise<void> {
         levelTwoContainer.style.flexDirection = "column";
 
-        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF));
+        const levelTwoHref: string = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
+        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const chapters: HTMLElement[] = this.getMangaCollection(mangaDocument);
+        const localStorageChapters: string[] = [];
         for (const chapter of chapters) {
             const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(chapter);
             const levelThreeHref = levelThreeAnchor.href;
+
+            // save to localStorage
+            localStorageChapters.push(levelThreeHref);
 
             // add the chapter button
             const chapterContainer: HTMLDivElement = Utilities.createTagWithClassName("div", "chapter-container") as HTMLDivElement;
@@ -41,6 +46,7 @@ abstract class NhManga extends Manga {
             chapterContainer.appendChild(lastReadContainer);
             levelTwoContainer.appendChild(chapterContainer);
         }
+        localStorage.setItem(levelTwoHref, JSON.stringify(localStorageChapters));
     }
 
     protected abstract getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string;
@@ -119,9 +125,13 @@ abstract class NhManga extends Manga {
                     const image: HTMLImageElement = entry.target as HTMLImageElement;
                     observer.unobserve(image);
                     image.removeAttribute(Content.CLASS);
-                    const nextChapterHref: string = this.getNextChapterHref(images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF));
-                    const nextChapterImages: HTMLImageElement[] = await this.getMangaImages(nextChapterHref, false);
-                    if (nextChapterImages.length > 0) {
+                    const currentLevelThreeHref: string = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
+                    const levelTwoHref: string = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
+                    const localStorageChapters: string[] = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const nextChapterIndex: number = localStorageChapters.indexOf(currentLevelThreeHref) - 1;
+                    const nextChapterHref: string = localStorageChapters[nextChapterIndex];
+                    if (nextChapterHref) {
+                        const nextChapterImages: HTMLImageElement[] = await this.getMangaImages(nextChapterHref, false);
                         await this.loadMangaImage(nextChapterImages, levelThreeContainer);
                     }
                 }
@@ -135,6 +145,4 @@ abstract class NhManga extends Manga {
         const image: HTMLImageElement = document.querySelector(Utilities.PERIOD + Content.OBSERVE_IMAGE) as HTMLImageElement;
         nextChapterObserver.observe(image);
     }
-
-    protected abstract getNextChapterHref(levelThreeHref: string): string;
 }

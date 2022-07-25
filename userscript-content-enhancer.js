@@ -631,11 +631,15 @@ class NhManga extends Manga {
     // level two
     async loadManga(levelTwoContainer) {
         levelTwoContainer.style.flexDirection = "column";
-        const mangaDocument = await Utilities.getResponseDocument(levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF));
+        const levelTwoHref = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
+        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
         const chapters = this.getMangaCollection(mangaDocument);
+        const localStorageChapters = [];
         for (const chapter of chapters) {
             const levelThreeAnchor = this.getLevelThreeAnchor(chapter);
             const levelThreeHref = levelThreeAnchor.href;
+            // save to localStorage
+            localStorageChapters.push(levelThreeHref);
             // add the chapter button
             const chapterContainer = Utilities.createTagWithClassName("div", "chapter-container");
             chapterContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
@@ -656,6 +660,7 @@ class NhManga extends Manga {
             chapterContainer.appendChild(lastReadContainer);
             levelTwoContainer.appendChild(chapterContainer);
         }
+        localStorage.setItem(levelTwoHref, JSON.stringify(localStorageChapters));
     }
     // level three
     async loadImages(levelThreeContainer) {
@@ -722,9 +727,13 @@ class NhManga extends Manga {
                     const image = entry.target;
                     observer.unobserve(image);
                     image.removeAttribute(Content.CLASS);
-                    const nextChapterHref = this.getNextChapterHref(images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF));
-                    const nextChapterImages = await this.getMangaImages(nextChapterHref, false);
-                    if (nextChapterImages.length > 0) {
+                    const currentLevelThreeHref = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
+                    const levelTwoHref = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
+                    const localStorageChapters = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const nextChapterIndex = localStorageChapters.indexOf(currentLevelThreeHref) - 1;
+                    const nextChapterHref = localStorageChapters[nextChapterIndex];
+                    if (nextChapterHref) {
+                        const nextChapterImages = await this.getMangaImages(nextChapterHref, false);
                         await this.loadMangaImage(nextChapterImages, levelThreeContainer);
                     }
                 }
@@ -1075,7 +1084,7 @@ class KissManga extends NhManga {
         return Utilities.hyphenateLongWord(name);
     }
     async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-        // yeah well, kissmanga throws a lot of 429s
+        // yeah well, kissmanga throws a lot of 429s, we need to change the logic
     }
     // level two
     getChapterButtonInnerText(levelThreeAnchor) {
@@ -1093,24 +1102,6 @@ class KissManga extends NhManga {
             image.setAttribute(Content.DATA_SRC, dataLazySrc);
             images.push(image);
         }
-    }
-    getNextChapterHref(href) {
-        const parts = href.split(Utilities.HYPHEN);
-        const end = parts[parts.length - 1];
-        const chapterNumber = end.substring(0, end.length - 1);
-        let nextChapterNumber;
-        if (end.includes(Utilities.PERIOD)) { // we are on a half chapter, skip this and get the next one
-            nextChapterNumber = parseInt(chapterNumber.split(Utilities.PERIOD)[0]) + 1;
-        }
-        else {
-            nextChapterNumber = parseInt(chapterNumber) + 1;
-        }
-        let nextChapterHref = Utilities.EMPTY_STRING;
-        for (let i = 0; i < parts.length - 1; i++) {
-            nextChapterHref += parts[i] + Utilities.HYPHEN;
-        }
-        nextChapterHref += nextChapterNumber + "/";
-        return nextChapterHref;
     }
 }
 //# sourceMappingURL=KissManga.js.map

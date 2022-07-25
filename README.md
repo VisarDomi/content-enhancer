@@ -13,6 +13,8 @@ A userscript which enhances the navigation of manga sites:
 - load all the chapters in a long strip format
 
 ## TODO:
+- nhentai and exhentai need to be converted to fullscreen
+- search bar
 - save/load the position of the search results
-- add a loading animation in every appropriate place
+- modify last available and last read logic
 - add gifs to the Features subheading

@@ -50,7 +50,7 @@ class KissManga extends NhManga {
     }
 
     protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
-        // yeah well, kissmanga throws a lot of 429s
+        // yeah well, kissmanga throws a lot of 429s, we need to change the logic
     }
 
         // level two
@@ -69,23 +69,5 @@ class KissManga extends NhManga {
             image.setAttribute(Content.DATA_SRC, dataLazySrc);
             images.push(image);
         }
-    }
-
-    protected getNextChapterHref(href: string): string {
-        const parts: string[] = href.split(Utilities.HYPHEN);
-        const end: string = parts[parts.length - 1];
-        const chapterNumber: string = end.substring(0, end.length - 1);
-        let nextChapterNumber: number;
-        if (end.includes(Utilities.PERIOD)) { // we are on a half chapter, skip this and get the next one
-            nextChapterNumber = parseInt(chapterNumber.split(Utilities.PERIOD)[0]) + 1;
-        } else {
-            nextChapterNumber = parseInt(chapterNumber) + 1;
-        }
-        let nextChapterHref: string = Utilities.EMPTY_STRING;
-        for (let i: number = 0; i < parts.length - 1; i++) {
-            nextChapterHref += parts[i] + Utilities.HYPHEN;
-        }
-        nextChapterHref += nextChapterNumber + "/";
-        return nextChapterHref;
     }
 }
