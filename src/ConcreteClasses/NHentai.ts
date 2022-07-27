@@ -72,7 +72,7 @@ class NHentai extends HManga {
         const src: string = levelTwoThumbnail.getAttribute(NHentai.DATA_SRC);
         const parts: string[] = src.split("/");
         let pageNumber: string = parts[parts.length - 1].split("t.jpg")[0];
-        if (pageNumber.match(/t\.png/g).length) {
+        if (pageNumber.includes("t.png")) {
             pageNumber = parts[parts.length - 1].split("t.png")[0];
         }
 

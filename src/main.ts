@@ -7,7 +7,7 @@ async function load() {
         content = new KissJav();
     } else if (href.includes("ytboob")) {
         content = new YtBoob();
-    } else if (href.includes("nhentai")) {
+    } else if (href.includes("nhentai") && !href.includes("__cf_chl_rt_tk")) {
         if (href.match(/\//g).length !== 6) {
             content = new NHentai();
         } else {

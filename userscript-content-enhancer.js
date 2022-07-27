@@ -188,7 +188,6 @@ Utilities.EMPTY_STRING = "";
 Utilities.SPACE = " ";
 Utilities.HYPHEN = "-";
 Utilities.PERIOD = ".";
-//# sourceMappingURL=Utilities.js.map
 
 class Content {
     constructor(href, fullscreen = false) {
@@ -281,16 +280,11 @@ class Content {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             };
             if (index === thumbnailContainersLength - 1) {
-                if (container.id === Content.L1_CONTAINER_ID) {
-                    thumbnail.className = Content.OBSERVE_THUMBNAIL;
-                }
-                else if (container.id === Content.L2_CONTAINER_ID) {
-                    thumbnail.className = Content.OBSERVE_GALLERY_THUMBNAIL;
-                }
+                thumbnail.className = Content.OBSERVE_THUMBNAIL;
             }
             container.appendChild(thumbnailContainer);
         }
-        else if (index === thumbnailContainersLength && container.id === Content.L1_CONTAINER_ID) {
+        else {
             this.observeLastThumbnail();
             for (const thumbnailContainer of thumbnailContainers) {
                 await this.updateThumbnailContainer(thumbnailContainer);
@@ -306,7 +300,7 @@ class Content {
                     thumbnail.removeAttribute(Content.CLASS);
                     const href = this.nextSearchResultsHref;
                     if (href !== null) {
-                        await this.load();
+                        await this.load(href);
                     }
                 }
             });
@@ -399,7 +393,7 @@ img, video {
 
 /* level 2 */
 #level-two-container {
-    padding-top: 30vh;
+    padding: 30vh 0;
 }
 
 .go-back-manga, .go-back {
@@ -507,15 +501,12 @@ Content.L2_CONTAINER_ID = "level-two-container";
 Content.L3_CONTAINER_ID = "level-three-container";
 Content.LOOK_AHEAD = "2000%"; // look ahead 20 screens
 Content.DATA_SRC = "data-src";
-Content.DATA_CFSRC = "data-cfsrc";
-Content.DATA_LAZY_SRC = "data-lazy-src";
 Content.DATA_LEVEL_TWO_HREF = "data-level-two-href";
 Content.DATA_LEVEL_THREE_HREF = "data-level-three-href";
 Content.DATA_DURATION = "data-duration";
 Content.LEVEL_ONE_THUMBNAIL_CONTAINER = "level-one-thumbnail-container";
 Content.LEVEL_TWO_THUMBNAIL_CONTAINER = "level-two-thumbnail-container";
 Content.OBSERVE_THUMBNAIL = "observe-thumbnail";
-Content.OBSERVE_GALLERY_THUMBNAIL = "observe-gallery-thumbnail";
 Content.OBSERVE_IMAGE = "observe-image";
 Content.LAST_WATCHED_1 = "last-watched-one";
 Content.LAST_WATCHED_2 = "last-watched-two";
@@ -526,7 +517,6 @@ Content.BLOCK = "block";
 Content.FLEX = "flex";
 Content.NONE = "none";
 Content.LOADING___ = "Loading...";
-//# sourceMappingURL=Content.js.map
 
 class Video extends Content {
     // level one
@@ -598,7 +588,6 @@ class Video extends Content {
         return levelTwoSource;
     }
 }
-//# sourceMappingURL=Video.js.map
 
 class Manga extends Content {
     // level one
@@ -697,7 +686,6 @@ class Manga extends Content {
         await this.loadImages(levelThreeContainer);
     }
 }
-//# sourceMappingURL=Manga.js.map
 
 class HManga extends Manga {
     // level one
@@ -785,7 +773,6 @@ class HManga extends Manga {
         infoObserver.observe(image);
     }
 }
-//# sourceMappingURL=HManga.js.map
 
 class NhManga extends Manga {
     // level one
@@ -799,8 +786,7 @@ class NhManga extends Manga {
     async loadManga(levelTwoContainer) {
         levelTwoContainer.style.flexDirection = "column";
         const levelTwoHref = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
-        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
-        const chapters = this.getMangaCollection(mangaDocument);
+        const chapters = await this.getMangaCollection(levelTwoHref);
         const localStorageChapters = [];
         for (const chapter of chapters) {
             const levelThreeAnchor = this.getLevelThreeAnchor(chapter);
@@ -915,7 +901,6 @@ class NhManga extends Manga {
         nextChapterObserver.observe(image);
     }
 }
-//# sourceMappingURL=NhManga.js.map
 
 class TokyoMotion extends Video {
     constructor() {
@@ -954,7 +939,6 @@ class TokyoMotion extends Video {
         return returnedSource;
     }
 }
-//# sourceMappingURL=TokyoMotion.js.map
 
 class KissJav extends Video {
     constructor() {
@@ -1000,7 +984,6 @@ class KissJav extends Video {
         return returnedSource;
     }
 }
-//# sourceMappingURL=KissJav.js.map
 
 class YtBoob extends Video {
     constructor() {
@@ -1035,7 +1018,6 @@ class YtBoob extends Video {
         return source.src;
     }
 }
-//# sourceMappingURL=YtBoob.js.map
 
 class NHentai extends HManga {
     constructor(fullscreen = false) {
@@ -1097,7 +1079,7 @@ class NHentai extends HManga {
         const src = levelTwoThumbnail.getAttribute(NHentai.DATA_SRC);
         const parts = src.split("/");
         let pageNumber = parts[parts.length - 1].split("t.jpg")[0];
-        if (pageNumber.match(/t\.png/g).length) {
+        if (pageNumber.includes("t.png")) {
             pageNumber = parts[parts.length - 1].split("t.png")[0];
         }
         return pageNumber;
@@ -1117,7 +1099,6 @@ class NHentai extends HManga {
         }
     }
 }
-//# sourceMappingURL=NHentai.js.map
 
 class ExHentai extends HManga {
     constructor(fullscreen = false) {
@@ -1142,21 +1123,24 @@ class ExHentai extends HManga {
         const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
         const children = [...mangaDocument.querySelector(".ptt").children[0].children[0].children];
         children.pop();
-        children.shift(); // remove the first and last element
-        const lastIndex = children.length - 1;
-        const lastChild = children[lastIndex];
-        const anchor = lastChild.children[0];
-        const lastHref = anchor.href;
-        const SEPARATOR = "?p=";
-        const pageFormat = lastHref.split(SEPARATOR)[0] + SEPARATOR;
-        const lastPage = parseInt(lastHref.split(SEPARATOR)[1]);
-        const promises = [];
-        for (let index = 0; index < lastPage + 1; index++) {
-            const pagePromise = Utilities.getResponseDocument(pageFormat + index);
-            promises.push(pagePromise);
+        children.shift(); // the first and last element are < and > (which are not needed)
+        const responses = [mangaDocument];
+        if (children.length > 1) {
+            const lastIndex = children.length - 1;
+            const lastChild = children[lastIndex];
+            const anchor = lastChild.children[0];
+            const lastHref = anchor.href;
+            const SEPARATOR = "?p=";
+            const pageFormat = lastHref.split(SEPARATOR)[0] + SEPARATOR;
+            const lastPage = parseInt(lastHref.split(SEPARATOR)[1]);
+            const promises = [];
+            for (let index = 1; index < lastPage + 1; index++) {
+                const pagePromise = Utilities.getResponseDocument(pageFormat + index);
+                promises.push(pagePromise);
+            }
+            responses.push(...await Promise.all(promises)); // parallel requests)
         }
         const thumbnails = [];
-        const responses = await Promise.all(promises); // parallel requests
         for (const pageDocument of responses) {
             const galleryThumbnailCollection = pageDocument.querySelectorAll(".gdtl");
             const pageThumbnails = [];
@@ -1239,7 +1223,6 @@ class ExHentai extends HManga {
         }
     }
 }
-//# sourceMappingURL=ExHentai.js.map
 
 class KissManga extends NhManga {
     constructor() {
@@ -1258,8 +1241,8 @@ class KissManga extends NhManga {
     appendThumbnailContainer(searchResultsThumbnail) {
         const levelTwoAnchor = searchResultsThumbnail.children[0];
         const thumbnail = levelTwoAnchor.children[0];
-        if (thumbnail.getAttribute(Content.DATA_LAZY_SRC) !== null) {
-            thumbnail.src = thumbnail.getAttribute(Content.DATA_LAZY_SRC);
+        if (thumbnail.getAttribute(KissManga.DATA_LAZY_SRC) !== null) {
+            thumbnail.src = thumbnail.getAttribute(KissManga.DATA_LAZY_SRC);
         }
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
@@ -1292,7 +1275,7 @@ class KissManga extends NhManga {
         const children = chapter.querySelectorAll(".page-break");
         for (const child of children) {
             const levelThreeImage = child.children[0];
-            const dataLazySrc = levelThreeImage.getAttribute(Content.DATA_LAZY_SRC);
+            const dataLazySrc = levelThreeImage.getAttribute(KissManga.DATA_LAZY_SRC);
             const image = new Image();
             image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             image.setAttribute(Content.DATA_SRC, dataLazySrc);
@@ -1300,7 +1283,7 @@ class KissManga extends NhManga {
         }
     }
 }
-//# sourceMappingURL=KissManga.js.map
+KissManga.DATA_LAZY_SRC = "data-lazy-src";
 
 async function load() {
     const href = location.href;
@@ -1314,7 +1297,7 @@ async function load() {
     else if (href.includes("ytboob")) {
         content = new YtBoob();
     }
-    else if (href.includes("nhentai")) {
+    else if (href.includes("nhentai") && !href.includes("__cf_chl_rt_tk")) {
         if (href.match(/\//g).length !== 6) {
             content = new NHentai();
         }
@@ -1336,4 +1319,3 @@ async function load() {
     await content?.init();
 }
 load();
-//# sourceMappingURL=main.js.map

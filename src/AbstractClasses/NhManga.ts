@@ -13,8 +13,7 @@ abstract class NhManga extends Manga {
         levelTwoContainer.style.flexDirection = "column";
 
         const levelTwoHref: string = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
-        const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
-        const chapters: HTMLElement[] = this.getMangaCollection(mangaDocument);
+        const chapters: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
         const localStorageChapters: string[] = [];
         for (const chapter of chapters) {
             const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(chapter);

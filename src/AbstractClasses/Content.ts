@@ -42,7 +42,7 @@ img, video {
 
 /* level 2 */
 #level-two-container {
-    padding-top: 30vh;
+    padding: 30vh 0;
 }
 
 .go-back-manga, .go-back {
@@ -150,15 +150,12 @@ img, video {
     protected static readonly L3_CONTAINER_ID: string = "level-three-container";
     protected static readonly LOOK_AHEAD: string = "2000%"; // look ahead 20 screens
     protected static readonly DATA_SRC: string = "data-src";
-    protected static readonly DATA_CFSRC: string = "data-cfsrc";
-    protected static readonly DATA_LAZY_SRC: string = "data-lazy-src";
     protected static readonly DATA_LEVEL_TWO_HREF: string = "data-level-two-href";
     protected static readonly DATA_LEVEL_THREE_HREF: string = "data-level-three-href";
     protected static readonly DATA_DURATION: string = "data-duration";
     protected static readonly LEVEL_ONE_THUMBNAIL_CONTAINER: string = "level-one-thumbnail-container";
     protected static readonly LEVEL_TWO_THUMBNAIL_CONTAINER: string = "level-two-thumbnail-container";
     protected static readonly OBSERVE_THUMBNAIL: string = "observe-thumbnail";
-    protected static readonly OBSERVE_GALLERY_THUMBNAIL: string = "observe-gallery-thumbnail";
     protected static readonly OBSERVE_IMAGE: string = "observe-image";
     protected static readonly LAST_WATCHED_1: string = "last-watched-one";
     protected static readonly LAST_WATCHED_2: string = "last-watched-two";
@@ -287,14 +284,10 @@ img, video {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
             if (index === thumbnailContainersLength - 1) {
-                if (container.id === Content.L1_CONTAINER_ID) {
-                    thumbnail.className = Content.OBSERVE_THUMBNAIL;
-                } else if (container.id === Content.L2_CONTAINER_ID) {
-                    thumbnail.className = Content.OBSERVE_GALLERY_THUMBNAIL;
-                }
+                thumbnail.className = Content.OBSERVE_THUMBNAIL;
             }
             container.appendChild(thumbnailContainer);
-        } else if (index === thumbnailContainersLength && container.id === Content.L1_CONTAINER_ID) {
+        } else {
             this.observeLastThumbnail();
             for (const thumbnailContainer of thumbnailContainers) {
                 await this.updateThumbnailContainer(thumbnailContainer);
@@ -311,7 +304,7 @@ img, video {
                     thumbnail.removeAttribute(Content.CLASS);
                     const href: string = this.nextSearchResultsHref;
                     if (href !== null) {
-                        await this.load();
+                        await this.load(href);
                     }
                 }
             })

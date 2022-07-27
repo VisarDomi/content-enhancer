@@ -1,4 +1,6 @@
 class KissManga extends NhManga {
+    private static readonly DATA_LAZY_SRC: string = "data-lazy-src";
+
     constructor() {
         super(location.href);
     }
@@ -19,8 +21,8 @@ class KissManga extends NhManga {
     protected appendThumbnailContainer(searchResultsThumbnail: HTMLElement): void {
         const levelTwoAnchor: HTMLAnchorElement = searchResultsThumbnail.children[0] as HTMLAnchorElement;
         const thumbnail: HTMLImageElement = levelTwoAnchor.children[0] as HTMLImageElement;
-        if (thumbnail.getAttribute(Content.DATA_LAZY_SRC) !== null) {
-            thumbnail.src = thumbnail.getAttribute(Content.DATA_LAZY_SRC);
+        if (thumbnail.getAttribute(KissManga.DATA_LAZY_SRC) !== null) {
+            thumbnail.src = thumbnail.getAttribute(KissManga.DATA_LAZY_SRC);
         }
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
@@ -60,7 +62,7 @@ class KissManga extends NhManga {
         const children: NodeListOf<HTMLDivElement> = chapter.querySelectorAll(".page-break") as NodeListOf<HTMLDivElement>;
         for (const child of children) {
             const levelThreeImage: HTMLImageElement = child.children[0] as HTMLImageElement;
-            const dataLazySrc: string = levelThreeImage.getAttribute(Content.DATA_LAZY_SRC);
+            const dataLazySrc: string = levelThreeImage.getAttribute(KissManga.DATA_LAZY_SRC);
             const image: HTMLImageElement = new Image();
             image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             image.setAttribute(Content.DATA_SRC, dataLazySrc);

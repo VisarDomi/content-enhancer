@@ -27,23 +27,26 @@ class ExHentai extends HManga {
 
         const children: HTMLTableCellElement[] = [...mangaDocument.querySelector(".ptt").children[0].children[0].children as HTMLCollectionOf<HTMLTableCellElement>];
         children.pop();
-        children.shift(); // remove the first and last element
-        const lastIndex: number = children.length - 1;
-        const lastChild: HTMLTableCellElement = children[lastIndex];
-        const anchor: HTMLAnchorElement = lastChild.children[0] as HTMLAnchorElement;
-        const lastHref: string = anchor.href;
-        const SEPARATOR: string = "?p=";
-        const pageFormat: string = lastHref.split(SEPARATOR)[0] + SEPARATOR;
-        const lastPage: number = parseInt(lastHref.split(SEPARATOR)[1]);
+        children.shift(); // the first and last element are < and > (which are not needed)
+        const responses: Document[] = [ mangaDocument ];
+        if (children.length > 1) {
+            const lastIndex: number = children.length - 1;
+            const lastChild: HTMLTableCellElement = children[lastIndex];
+            const anchor: HTMLAnchorElement = lastChild.children[0] as HTMLAnchorElement;
+            const lastHref: string = anchor.href;
+            const SEPARATOR: string = "?p=";
+            const pageFormat: string = lastHref.split(SEPARATOR)[0] + SEPARATOR;
+            const lastPage: number = parseInt(lastHref.split(SEPARATOR)[1]);
 
-        const promises: Promise<Document>[] = [];
-        for (let index = 0; index < lastPage + 1; index++) {
-            const pagePromise: Promise<Document> = Utilities.getResponseDocument(pageFormat + index);
-            promises.push(pagePromise);
+            const promises: Promise<Document>[] = [];
+            for (let index = 1; index < lastPage + 1; index++) {
+                const pagePromise: Promise<Document> = Utilities.getResponseDocument(pageFormat + index);
+                promises.push(pagePromise);
+            }
+            responses.push(...await Promise.all(promises)); // parallel requests)
         }
 
         const thumbnails: HTMLElement[] = [];
-        const responses: Document[] = await Promise.all(promises); // parallel requests
         for (const pageDocument of responses) {
             const galleryThumbnailCollection: NodeListOf<HTMLDivElement> = pageDocument.querySelectorAll(".gdtl") as NodeListOf<HTMLDivElement>;
             const pageThumbnails: HTMLElement[] = [];
