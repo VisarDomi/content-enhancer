@@ -4,7 +4,7 @@ class YtBoob extends Video {
     }
 
     // level one
-    protected getAnchor(): HTMLAnchorElement {
+    protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelectorAll(".pagination-nav")[1].children[0] as HTMLAnchorElement;
     }
 

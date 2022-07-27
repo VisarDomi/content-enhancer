@@ -6,7 +6,7 @@ class KissManga extends NhManga {
     }
 
     // level one
-    protected getAnchor(): HTMLAnchorElement {
+    protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".nextpostslink") as HTMLAnchorElement;
     }
 
@@ -27,6 +27,11 @@ class KissManga extends NhManga {
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
+    protected saveLastAvailableTwo(levelTwoAnchor: HTMLAnchorElement): void {
+        const lastChapter: HTMLAnchorElement = levelTwoAnchor.parentElement.parentElement.querySelector(".btn-link") as HTMLAnchorElement;
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, lastChapter.innerText);
+    }
+
     protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
         const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const nodeChapters: HTMLCollectionOf<HTMLLIElement> = mangaDocument.querySelector(".main").children as HTMLCollectionOf<HTMLLIElement>;
@@ -41,18 +46,14 @@ class KissManga extends NhManga {
     }
 
     protected getItemName(levelThreeAnchor: HTMLAnchorElement): string {
-        return levelThreeAnchor.innerText.trim();
+        return this.getChapterButtonInnerText(levelThreeAnchor);
     }
 
-    protected getLastAvailableTwoInnerText(): string {
-        return "To be implemented...";
+    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
+        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
     }
 
-    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
-        // yeah well, kissmanga throws a lot of 429s, we need to change the logic
-    }
-
-        // level two
+    // level two
     protected getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string {
         return levelThreeAnchor.innerText.trim();
     };

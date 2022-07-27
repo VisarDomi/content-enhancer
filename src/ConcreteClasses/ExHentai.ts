@@ -4,7 +4,7 @@ class ExHentai extends HManga {
     }
 
     // level one
-    protected getAnchor(): HTMLAnchorElement {
+    protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children[10].children[0] as HTMLAnchorElement;
     }
 
@@ -20,6 +20,11 @@ class ExHentai extends HManga {
         const levelTwoAnchor: HTMLAnchorElement = searchResultsThumbnail.children[1].children[0] as HTMLAnchorElement;
         const thumbnail: HTMLImageElement = levelTwoAnchor.children[0] as HTMLImageElement;
         this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+
+    protected saveLastAvailableTwo(levelTwoAnchor: HTMLAnchorElement): void {
+        const totalPages: HTMLDivElement = levelTwoAnchor.parentElement.parentElement.querySelector(".ir").parentElement.children[1] as HTMLDivElement;
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, totalPages.innerText);
     }
 
     protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
@@ -54,13 +59,6 @@ class ExHentai extends HManga {
             thumbnails.push(...pageThumbnails);
         }
 
-        const levelThreeHrefs: string[] = [];
-        for (const thumbnail of thumbnails) {
-            const anchor: HTMLAnchorElement = thumbnail.children[0] as HTMLAnchorElement;
-            levelThreeHrefs.push(anchor.href);
-        }
-        localStorage.setItem(levelTwoHref, JSON.stringify(levelThreeHrefs));
-
         return thumbnails;
     }
 
@@ -74,11 +72,8 @@ class ExHentai extends HManga {
         return levelTwoThumbnail.alt;
     }
 
-    protected getLastAvailableTwoInnerText(): string {
-        return "To be implemented...";
-    }
-
-    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
+    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
+        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
     }
 
     // level two
@@ -95,9 +90,9 @@ class ExHentai extends HManga {
         const levelThreeHref: string = elementContainer.getAttribute(ExHentai.DATA_LEVEL_THREE_HREF);
         const levelTwoContainer: HTMLDivElement = document.getElementById(ExHentai.L2_CONTAINER_ID) as HTMLDivElement;
         const levelTwoHref: string = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
-        localStorage.setItem(levelThreeHref, levelTwoHref);
+        localStorage.setItem(Content.LEVEL_TWO_HREF + levelThreeHref, levelTwoHref);
 
-        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(levelTwoHref)) as string[];
+        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref)) as string[];
         let index: number = levelThreeHrefs.indexOf(levelThreeHref);
         const promises: Promise<Document>[] = [];
         for (index; index < levelThreeHrefs.length; index++) {
@@ -109,9 +104,7 @@ class ExHentai extends HManga {
         const responses: Document[] = await Promise.all(promises); // parallel requests everywhere
         const nlPromises: Promise<Document>[] = [];
         for (const response of responses) {
-            const nl: string = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
-            const nlHref: string = response.baseURI + "?nl=" + nl;
-            const nlPromise: Promise<Document> = Utilities.getResponseDocument(nlHref);
+            const nlPromise: Promise<Document> = Utilities.getResponseDocument(this.getNlHref(response));
             nlPromises.push(nlPromise);
         }
 
@@ -123,15 +116,17 @@ class ExHentai extends HManga {
             srcs.push(nlImage.src);
         }
 
-        localStorage.setItem(levelTwoHref, JSON.stringify(srcs));
+        localStorage.setItem(Content.SOURCES + levelTwoHref, JSON.stringify(srcs));
         window.open(levelThreeHref, levelTwoHref);
     }
 
+    private getNlHref(response: Document): string {
+        const nl: string = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+        return response.baseURI + "?nl=" + nl;
+    }
+
     protected async getLevelThreeImage(imageDocument: Document): Promise<HTMLImageElement> {
-        // use nl instead of the image
-        const nl: string = imageDocument.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
-        const nlHref: string = imageDocument.baseURI + "?nl=" + nl;
-        const nlDocument: Document = await Utilities.getResponseDocument(nlHref);
+        const nlDocument: Document = await Utilities.getResponseDocument(this.getNlHref(imageDocument));
         return nlDocument.getElementById("i3").children[0].children[0] as HTMLImageElement;
     }
 

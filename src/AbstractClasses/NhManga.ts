@@ -14,13 +14,14 @@ abstract class NhManga extends Manga {
 
         const levelTwoHref: string = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
         const chapters: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
-        const localStorageChapters: string[] = [];
+        const levelThreeHrefs: string[] = [];
         for (const chapter of chapters) {
             const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(chapter);
             const levelThreeHref = levelThreeAnchor.href;
 
             // save to localStorage
-            localStorageChapters.push(levelThreeHref);
+            levelThreeHrefs.push(levelThreeHref);
+            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, this.getItemName(levelThreeAnchor));
 
             // add the chapter button
             const chapterContainer: HTMLDivElement = Utilities.createTagWithClassName("div", "chapter-container") as HTMLDivElement;
@@ -45,7 +46,7 @@ abstract class NhManga extends Manga {
             chapterContainer.appendChild(lastReadContainer);
             levelTwoContainer.appendChild(chapterContainer);
         }
-        localStorage.setItem(levelTwoHref, JSON.stringify(localStorageChapters));
+        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
     }
 
     protected abstract getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string;
@@ -94,28 +95,6 @@ abstract class NhManga extends Manga {
         }
     }
 
-    protected observeImage(image: HTMLImageElement) {
-        // set the info of the current image
-        const setInfo = (entries: IntersectionObserverEntry[]) => {
-            entries.forEach(async entry => {
-                if (entry.isIntersecting) {
-                    const observedImage: HTMLImageElement = entry.target as HTMLImageElement;
-                    const infoContent: HTMLSpanElement = document.querySelector(".info-content") as HTMLSpanElement;
-                    const levelThreeHref = observedImage.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-                    infoContent.innerText = levelThreeHref;
-                    localStorage.setItem(levelThreeHref, Date.now() + "");
-                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
-                }
-            })
-        }
-        const infoOptions: {} = {
-            root: null,
-            rootMargin: "0px"
-        }
-        const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
-        infoObserver.observe(image);
-    }
-
     private loadNextChapter(images: HTMLImageElement[], levelThreeContainer: HTMLDivElement) {
         // load next chapter
         const nextChapter = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
@@ -126,9 +105,9 @@ abstract class NhManga extends Manga {
                     image.removeAttribute(Content.CLASS);
                     const currentLevelThreeHref: string = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
                     const levelTwoHref: string = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
-                    const localStorageChapters: string[] = JSON.parse(localStorage.getItem(levelTwoHref));
-                    const nextChapterIndex: number = localStorageChapters.indexOf(currentLevelThreeHref) - 1;
-                    const nextChapterHref: string = localStorageChapters[nextChapterIndex];
+                    const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const nextChapterIndex: number = levelThreeHrefs.indexOf(currentLevelThreeHref) - 1;
+                    const nextChapterHref: string = levelThreeHrefs[nextChapterIndex];
                     if (nextChapterHref) {
                         const nextChapterImages: HTMLImageElement[] = await this.getMangaImages(nextChapterHref, false);
                         await this.loadMangaImage(nextChapterImages, levelThreeContainer);

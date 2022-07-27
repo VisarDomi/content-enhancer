@@ -1,35 +1,29 @@
 abstract class Manga extends Content {
     // level one
     protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
-        const mangaCollection: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
+        lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
+        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(levelTwoHref);
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
-        const readCollection: { name: string, lastRead: number }[] = [];
-        let lastReadFound: boolean = false;
-        for (let i = 0; i < mangaCollection.length; i++) {
-            const item = mangaCollection[i];
-            const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(item);
-            const name: string = this.getItemName(levelThreeAnchor);
-            const lastReadStorage: string = localStorage.getItem(levelThreeAnchor.href);
-            if (lastReadStorage !== null) {
-                lastReadFound = true;
-                const lastRead: number = parseInt(lastReadStorage);
-                readCollection.push({
-                    name,
-                    lastRead
-                })
+        try {
+            const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref)) as string[];
+            const readCollection: { name: string, lastRead: number }[] = [];
+            for (const levelThreeHref of levelThreeHrefs) {
+                const lastRead: number = parseInt(localStorage.getItem(levelThreeHref));
+                if (lastRead) {
+                    readCollection.push({
+                        name: localStorage.getItem(Content.ITEM_NAME + levelThreeHref),
+                        lastRead
+                    })
+                }
             }
-        }
-
-        if (lastReadFound) {
-            // I caved in and got some help for this. It returns the object that has the greatest lastRead
             const lastReadItem: { name: string, lastRead: number } = readCollection.reduce(Utilities.getLastReadChapter);
-            lastReadOne.innerText = "Read: " + Utilities.getTimeAgo(lastReadItem.lastRead + "");
-            lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
+            if (lastReadItem) {
+                lastReadOne.innerText = "Read: " + Utilities.getTimeAgo(lastReadItem.lastRead + "");
+                lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
+            }
+        } catch (ignored) {
         }
-
-        lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
-        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText();
     }
 
     protected abstract getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]>;
@@ -42,7 +36,7 @@ abstract class Manga extends Content {
 
     protected abstract getLastAvailableOneInnerText(): string;
 
-    protected abstract getLastAvailableTwoInnerText(): string;
+    protected abstract getLastAvailableTwoInnerText(levelTwoHref: string): string;
 
     // level two
     protected async loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {
@@ -123,5 +117,25 @@ abstract class Manga extends Content {
 
     protected abstract loadImages(levelThreeContainer: HTMLDivElement): Promise<void>;
 
-    protected abstract observeImage(image: HTMLImageElement): void;
+    protected observeImage(image: HTMLImageElement): void {
+        // set the info of the current image
+        const setInfo = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach(async entry => {
+                if (entry.isIntersecting) {
+                    const observedImage: HTMLImageElement = entry.target as HTMLImageElement;
+                    const infoContent: HTMLSpanElement = document.querySelector(".info-content") as HTMLSpanElement;
+                    const levelThreeHref = observedImage.getAttribute(Content.DATA_LEVEL_THREE_HREF);
+                    infoContent.innerText = levelThreeHref;
+                    localStorage.setItem(levelThreeHref, Date.now() + "");
+                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
+                }
+            })
+        }
+        const infoOptions: {} = {
+            root: null,
+            rootMargin: "0px"
+        }
+        const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
+        infoObserver.observe(image);
+    }
 }

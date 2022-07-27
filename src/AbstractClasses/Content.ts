@@ -166,6 +166,11 @@ img, video {
     protected static readonly FLEX: string = "flex";
     protected static readonly NONE: string = "none";
     protected static readonly LOADING___: string = "Loading...";
+    protected static readonly SOURCES: string = "sources";
+    protected static readonly HREFS: string = "hrefs";
+    protected static readonly ITEM_NAME: string = "item-name";
+    protected static readonly LAST_AVAILABLE: string = "last-available";
+    protected static readonly LEVEL_TWO_HREF: string = "level-two-href";
 
     private readonly href: string;
     private readonly fullscreen: boolean;
@@ -207,13 +212,13 @@ img, video {
 
     private setNextSearchResultsHref(): void {
         this.nextSearchResultsHref = null;
-        const anchor: HTMLAnchorElement = this.getAnchor();
+        const anchor: HTMLAnchorElement = this.getNextSearchResultsAnchor();
         if (anchor && anchor.href !== undefined) {
             this.nextSearchResultsHref = anchor.href;
         }
     }
 
-    protected abstract getAnchor(): HTMLAnchorElement;
+    protected abstract getNextSearchResultsAnchor(): HTMLAnchorElement;
 
     private createThumbnailContainers(): void {
         this.thumbnailContainers = [];
@@ -234,22 +239,24 @@ img, video {
 
     protected createThumbnailContainer(levelOneThumbnail: HTMLImageElement, levelTwoAnchor: HTMLAnchorElement): HTMLDivElement {
         const thumbnailContainer: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LEVEL_ONE_THUMBNAIL_CONTAINER) as HTMLDivElement;
-        thumbnailContainer.setAttribute(Content.DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
+        const levelTwoHref: string = levelTwoAnchor.href;
+        thumbnailContainer.setAttribute(Content.DATA_LEVEL_TWO_HREF, levelTwoHref);
 
         const thumbnail: HTMLImageElement = new Image();
         const latestContainer: HTMLDivElement = Utilities.createTagWithClassName("div", "latest-container") as HTMLDivElement;
         const lastWatched: HTMLDivElement = Utilities.createTagWithClassName("div", "last-watched-element") as HTMLDivElement;
         const lastAvailable: HTMLDivElement = Utilities.createTagWithClassName("div", "last-available-element") as HTMLDivElement;
-        const lastWatchedOne: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_1 + levelTwoAnchor.href) as HTMLDivElement;
+        const lastWatchedOne: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_1 + levelTwoHref) as HTMLDivElement;
         lastWatchedOne.innerText = Content.LOADING___;
-        const lastWatchedTwo: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_2 + levelTwoAnchor.href) as HTMLDivElement;
+        const lastWatchedTwo: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_2 + levelTwoHref) as HTMLDivElement;
         lastWatchedTwo.innerText = Content.LOADING___;
-        const lastAvailableOne: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_1 + levelTwoAnchor.href) as HTMLDivElement;
+        const lastAvailableOne: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_1 + levelTwoHref) as HTMLDivElement;
         lastAvailableOne.innerText = Content.LOADING___;
-        const lastAvailableTwo: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_2 + levelTwoAnchor.href) as HTMLDivElement;
+        const lastAvailableTwo: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
         lastAvailableTwo.innerText = Content.LOADING___;
 
         this.saveDuration(levelOneThumbnail, lastAvailableTwo);
+        this.saveLastAvailableTwo(levelTwoAnchor);
 
         lastWatched.appendChild(lastWatchedOne);
         lastWatched.appendChild(lastWatchedTwo);
@@ -269,6 +276,9 @@ img, video {
     }
 
     protected saveDuration(levelOneThumbnail: HTMLImageElement, lastAvailableTwo: HTMLDivElement): void {
+    }
+
+    protected saveLastAvailableTwo(levelTwoAnchor: HTMLAnchorElement): void {
     }
 
     protected async loadThumbnailContainer(thumbnailContainers: HTMLDivElement[], container: HTMLDivElement, index: number = 0): Promise<void> {
@@ -335,9 +345,10 @@ img, video {
 
     // level three - the fullscreen experience
     public async loadFullscreen(): Promise<void> {
+        localStorage.setItem(this.href, Date.now() + "");
         const levelOneContainer: HTMLDivElement = document.getElementById(Content.L1_CONTAINER_ID) as HTMLDivElement;
-        const levelTwoHref: string = localStorage.getItem(location.href);
-        const srcs: string[] = JSON.parse(localStorage.getItem(levelTwoHref)) as string[];
+        const levelTwoHref: string = localStorage.getItem(Content.LEVEL_TWO_HREF + this.href);
+        const srcs: string[] = JSON.parse(localStorage.getItem(Content.SOURCES + levelTwoHref)) as string[];
         // the things above can be sent to exhentai
         for (const src of srcs) {
             const image: HTMLImageElement = document.createElement("img");

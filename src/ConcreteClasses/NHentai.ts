@@ -4,7 +4,7 @@ class NHentai extends HManga {
     }
 
     // level one
-    protected getAnchor(): HTMLAnchorElement {
+    protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".next") as HTMLAnchorElement;
     }
 
@@ -31,6 +31,10 @@ class NHentai extends HManga {
         const thumbnails: HTMLElement[] = [];
         thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
 
+        const names: NodeListOf<HTMLSpanElement> = mangaDocument.querySelectorAll(".name");
+        const totalPages: HTMLSpanElement = names.item(names.length - 1);
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoHref, totalPages.innerText);
+
         return thumbnails;
     }
 
@@ -45,12 +49,9 @@ class NHentai extends HManga {
         return parts[parts.length - 2]; // the penultimate part
     }
 
-    protected getLastAvailableTwoInnerText(): string {
-        return "To be implemented...";
-    }
-
-    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
-        // yeah well, nhentai is throwing cloudflare errors, we need to change the logic
+    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
+        const lastAvailableTwoInnerText: string = localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
+        return lastAvailableTwoInnerText ? lastAvailableTwoInnerText : "Unknown";
     }
 
     // level two

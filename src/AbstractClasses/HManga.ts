@@ -18,20 +18,24 @@ abstract class HManga extends Manga {
 
         const levelTwoHref: string = levelTwoContainer.getAttribute(HManga.DATA_LEVEL_TWO_HREF);
         const galleryThumbnailsList: HTMLElement[] = await this.getMangaCollection(levelTwoHref);
-
+        const levelThreeHrefs: string[] = [];
         for (const galleryThumbnailElement of galleryThumbnailsList) {
             const levelThreeAnchor: HTMLAnchorElement = this.getLevelThreeAnchor(galleryThumbnailElement);
-            const levelTwoThumbnail: HTMLImageElement = this.getLevelTwoThumbnail(levelThreeAnchor);
-
-            const thumbnailContainer: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LEVEL_TWO_THUMBNAIL_CONTAINER) as HTMLDivElement;
             const levelThreeHref: string = levelThreeAnchor.href;
+
+            // save to localStorage
+            levelThreeHrefs.push(levelThreeHref);
+            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, this.getItemName(levelThreeAnchor));
+
+            // add the thumbnail container
+            const thumbnailContainer: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LEVEL_TWO_THUMBNAIL_CONTAINER) as HTMLDivElement;
             thumbnailContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             thumbnailContainer.onclick = async () => {
-                // instead of loading level three, open a new tab, and the script should activate with only level 3 logic
                 await this.loadLevelThree(thumbnailContainer, window.scrollY);
             }
 
             const galleryThumbnail: HTMLImageElement = new Image();
+            const levelTwoThumbnail: HTMLImageElement = this.getLevelTwoThumbnail(levelThreeAnchor);
             galleryThumbnail.setAttribute(Content.DATA_SRC, levelTwoThumbnail.src);
             thumbnailContainer.append(galleryThumbnail);
 
@@ -49,6 +53,7 @@ abstract class HManga extends Manga {
             thumbnailContainer.appendChild(lastReadContainer);
             levelTwoThumbnailContainers.push(thumbnailContainer);
         }
+        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
 
         await this.loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
     }
@@ -84,26 +89,6 @@ abstract class HManga extends Manga {
 
             this.observeImage(image);
         }
-    }
-
-    protected observeImage(image: HTMLImageElement): void {
-        // observe the image
-        const setInfo = (entries: IntersectionObserverEntry[]) => {
-            entries.forEach(async entry => {
-                if (entry.isIntersecting) {
-                    const entryTarget: HTMLImageElement = entry.target as HTMLImageElement;
-                    const levelThreeHref: string = entryTarget.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-                    localStorage.setItem(levelThreeHref, Date.now() + "");
-                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
-                }
-            })
-        }
-        const infoOptions: {} = {
-            root: null,
-            rootMargin: "0px"
-        }
-        const infoObserver: IntersectionObserver = new IntersectionObserver(setInfo, infoOptions);
-        infoObserver.observe(image);
     }
 
     protected abstract getLevelThreeImage(imageDocument: Document): Promise<HTMLImageElement>;

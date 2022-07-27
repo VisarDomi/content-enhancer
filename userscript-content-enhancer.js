@@ -219,7 +219,7 @@ class Content {
     }
     setNextSearchResultsHref() {
         this.nextSearchResultsHref = null;
-        const anchor = this.getAnchor();
+        const anchor = this.getNextSearchResultsAnchor();
         if (anchor && anchor.href !== undefined) {
             this.nextSearchResultsHref = anchor.href;
         }
@@ -237,20 +237,22 @@ class Content {
     }
     createThumbnailContainer(levelOneThumbnail, levelTwoAnchor) {
         const thumbnailContainer = Utilities.createTagWithClassName("div", Content.LEVEL_ONE_THUMBNAIL_CONTAINER);
-        thumbnailContainer.setAttribute(Content.DATA_LEVEL_TWO_HREF, levelTwoAnchor.href);
+        const levelTwoHref = levelTwoAnchor.href;
+        thumbnailContainer.setAttribute(Content.DATA_LEVEL_TWO_HREF, levelTwoHref);
         const thumbnail = new Image();
         const latestContainer = Utilities.createTagWithClassName("div", "latest-container");
         const lastWatched = Utilities.createTagWithClassName("div", "last-watched-element");
         const lastAvailable = Utilities.createTagWithClassName("div", "last-available-element");
-        const lastWatchedOne = Utilities.createTagWithId("div", Content.LAST_WATCHED_1 + levelTwoAnchor.href);
+        const lastWatchedOne = Utilities.createTagWithId("div", Content.LAST_WATCHED_1 + levelTwoHref);
         lastWatchedOne.innerText = Content.LOADING___;
-        const lastWatchedTwo = Utilities.createTagWithId("div", Content.LAST_WATCHED_2 + levelTwoAnchor.href);
+        const lastWatchedTwo = Utilities.createTagWithId("div", Content.LAST_WATCHED_2 + levelTwoHref);
         lastWatchedTwo.innerText = Content.LOADING___;
-        const lastAvailableOne = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_1 + levelTwoAnchor.href);
+        const lastAvailableOne = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_1 + levelTwoHref);
         lastAvailableOne.innerText = Content.LOADING___;
-        const lastAvailableTwo = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_2 + levelTwoAnchor.href);
+        const lastAvailableTwo = Utilities.createTagWithId("div", Content.LAST_AVAILABLE_2 + levelTwoHref);
         lastAvailableTwo.innerText = Content.LOADING___;
         this.saveDuration(levelOneThumbnail, lastAvailableTwo);
+        this.saveLastAvailableTwo(levelTwoAnchor);
         lastWatched.appendChild(lastWatchedOne);
         lastWatched.appendChild(lastWatchedTwo);
         lastAvailable.appendChild(lastAvailableOne);
@@ -266,6 +268,8 @@ class Content {
         return thumbnailContainer;
     }
     saveDuration(levelOneThumbnail, lastAvailableTwo) {
+    }
+    saveLastAvailableTwo(levelTwoAnchor) {
     }
     async loadThumbnailContainer(thumbnailContainers, container, index = 0) {
         const thumbnailContainersLength = thumbnailContainers.length;
@@ -323,9 +327,10 @@ class Content {
     }
     // level three - the fullscreen experience
     async loadFullscreen() {
+        localStorage.setItem(this.href, Date.now() + "");
         const levelOneContainer = document.getElementById(Content.L1_CONTAINER_ID);
-        const levelTwoHref = localStorage.getItem(location.href);
-        const srcs = JSON.parse(localStorage.getItem(levelTwoHref));
+        const levelTwoHref = localStorage.getItem(Content.LEVEL_TWO_HREF + this.href);
+        const srcs = JSON.parse(localStorage.getItem(Content.SOURCES + levelTwoHref));
         // the things above can be sent to exhentai
         for (const src of srcs) {
             const image = document.createElement("img");
@@ -517,6 +522,11 @@ Content.BLOCK = "block";
 Content.FLEX = "flex";
 Content.NONE = "none";
 Content.LOADING___ = "Loading...";
+Content.SOURCES = "sources";
+Content.HREFS = "hrefs";
+Content.ITEM_NAME = "item-name";
+Content.LAST_AVAILABLE = "last-available";
+Content.LEVEL_TWO_HREF = "level-two-href";
 
 class Video extends Content {
     // level one
@@ -592,33 +602,30 @@ class Video extends Content {
 class Manga extends Content {
     // level one
     async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-        const mangaCollection = await this.getMangaCollection(levelTwoHref);
+        lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
+        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(levelTwoHref);
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
-        const readCollection = [];
-        let lastReadFound = false;
-        for (let i = 0; i < mangaCollection.length; i++) {
-            const item = mangaCollection[i];
-            const levelThreeAnchor = this.getLevelThreeAnchor(item);
-            const name = this.getItemName(levelThreeAnchor);
-            const lastReadStorage = localStorage.getItem(levelThreeAnchor.href);
-            if (lastReadStorage !== null) {
-                lastReadFound = true;
-                const lastRead = parseInt(lastReadStorage);
-                readCollection.push({
-                    name,
-                    lastRead
-                });
+        try {
+            const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
+            const readCollection = [];
+            for (const levelThreeHref of levelThreeHrefs) {
+                const lastRead = parseInt(localStorage.getItem(levelThreeHref));
+                if (lastRead) {
+                    readCollection.push({
+                        name: localStorage.getItem(Content.ITEM_NAME + levelThreeHref),
+                        lastRead
+                    });
+                }
+            }
+            const lastReadItem = readCollection.reduce(Utilities.getLastReadChapter);
+            if (lastReadItem) {
+                lastReadOne.innerText = "Read: " + Utilities.getTimeAgo(lastReadItem.lastRead + "");
+                lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
             }
         }
-        if (lastReadFound) {
-            // I caved in and got some help for this. It returns the object that has the greatest lastRead
-            const lastReadItem = readCollection.reduce(Utilities.getLastReadChapter);
-            lastReadOne.innerText = "Read: " + Utilities.getTimeAgo(lastReadItem.lastRead + "");
-            lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
+        catch (ignored) {
         }
-        lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
-        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText();
     }
     // level two
     async loadLevelTwo(searchResultsThumbnailContainer, levelOneScrollPosition) {
@@ -685,6 +692,27 @@ class Manga extends Content {
         // now it's time to load the images
         await this.loadImages(levelThreeContainer);
     }
+    observeImage(image) {
+        // set the info of the current image
+        const setInfo = (entries) => {
+            entries.forEach(async (entry) => {
+                if (entry.isIntersecting) {
+                    const observedImage = entry.target;
+                    const infoContent = document.querySelector(".info-content");
+                    const levelThreeHref = observedImage.getAttribute(Content.DATA_LEVEL_THREE_HREF);
+                    infoContent.innerText = levelThreeHref;
+                    localStorage.setItem(levelThreeHref, Date.now() + "");
+                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
+                }
+            });
+        };
+        const infoOptions = {
+            root: null,
+            rootMargin: "0px"
+        };
+        const infoObserver = new IntersectionObserver(setInfo, infoOptions);
+        infoObserver.observe(image);
+    }
 }
 
 class HManga extends Manga {
@@ -703,17 +731,21 @@ class HManga extends Manga {
         this.removeExtraDiv();
         const levelTwoHref = levelTwoContainer.getAttribute(HManga.DATA_LEVEL_TWO_HREF);
         const galleryThumbnailsList = await this.getMangaCollection(levelTwoHref);
+        const levelThreeHrefs = [];
         for (const galleryThumbnailElement of galleryThumbnailsList) {
             const levelThreeAnchor = this.getLevelThreeAnchor(galleryThumbnailElement);
-            const levelTwoThumbnail = this.getLevelTwoThumbnail(levelThreeAnchor);
-            const thumbnailContainer = Utilities.createTagWithClassName("div", Content.LEVEL_TWO_THUMBNAIL_CONTAINER);
             const levelThreeHref = levelThreeAnchor.href;
+            // save to localStorage
+            levelThreeHrefs.push(levelThreeHref);
+            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, this.getItemName(levelThreeAnchor));
+            // add the thumbnail container
+            const thumbnailContainer = Utilities.createTagWithClassName("div", Content.LEVEL_TWO_THUMBNAIL_CONTAINER);
             thumbnailContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
             thumbnailContainer.onclick = async () => {
-                // instead of loading level three, open a new tab, and the script should activate with only level 3 logic
                 await this.loadLevelThree(thumbnailContainer, window.scrollY);
             };
             const galleryThumbnail = new Image();
+            const levelTwoThumbnail = this.getLevelTwoThumbnail(levelThreeAnchor);
             galleryThumbnail.setAttribute(Content.DATA_SRC, levelTwoThumbnail.src);
             thumbnailContainer.append(galleryThumbnail);
             // add the last read information next to the button
@@ -728,6 +760,7 @@ class HManga extends Manga {
             thumbnailContainer.appendChild(lastReadContainer);
             levelTwoThumbnailContainers.push(thumbnailContainer);
         }
+        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
         await this.loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
     }
     removeExtraDiv() { }
@@ -753,25 +786,6 @@ class HManga extends Manga {
             this.observeImage(image);
         }
     }
-    observeImage(image) {
-        // observe the image
-        const setInfo = (entries) => {
-            entries.forEach(async (entry) => {
-                if (entry.isIntersecting) {
-                    const entryTarget = entry.target;
-                    const levelThreeHref = entryTarget.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-                    localStorage.setItem(levelThreeHref, Date.now() + "");
-                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
-                }
-            });
-        };
-        const infoOptions = {
-            root: null,
-            rootMargin: "0px"
-        };
-        const infoObserver = new IntersectionObserver(setInfo, infoOptions);
-        infoObserver.observe(image);
-    }
 }
 
 class NhManga extends Manga {
@@ -787,12 +801,13 @@ class NhManga extends Manga {
         levelTwoContainer.style.flexDirection = "column";
         const levelTwoHref = levelTwoContainer.getAttribute(NhManga.DATA_LEVEL_TWO_HREF);
         const chapters = await this.getMangaCollection(levelTwoHref);
-        const localStorageChapters = [];
+        const levelThreeHrefs = [];
         for (const chapter of chapters) {
             const levelThreeAnchor = this.getLevelThreeAnchor(chapter);
             const levelThreeHref = levelThreeAnchor.href;
             // save to localStorage
-            localStorageChapters.push(levelThreeHref);
+            levelThreeHrefs.push(levelThreeHref);
+            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, this.getItemName(levelThreeAnchor));
             // add the chapter button
             const chapterContainer = Utilities.createTagWithClassName("div", "chapter-container");
             chapterContainer.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
@@ -813,7 +828,7 @@ class NhManga extends Manga {
             chapterContainer.appendChild(lastReadContainer);
             levelTwoContainer.appendChild(chapterContainer);
         }
-        localStorage.setItem(levelTwoHref, JSON.stringify(localStorageChapters));
+        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
     }
     // level three
     async loadImages(levelThreeContainer) {
@@ -851,27 +866,6 @@ class NhManga extends Manga {
             this.loadNextChapter(images, levelThreeContainer);
         }
     }
-    observeImage(image) {
-        // set the info of the current image
-        const setInfo = (entries) => {
-            entries.forEach(async (entry) => {
-                if (entry.isIntersecting) {
-                    const observedImage = entry.target;
-                    const infoContent = document.querySelector(".info-content");
-                    const levelThreeHref = observedImage.getAttribute(Content.DATA_LEVEL_THREE_HREF);
-                    infoContent.innerText = levelThreeHref;
-                    localStorage.setItem(levelThreeHref, Date.now() + "");
-                    Utilities.updateLastRead(document.getElementById(levelThreeHref));
-                }
-            });
-        };
-        const infoOptions = {
-            root: null,
-            rootMargin: "0px"
-        };
-        const infoObserver = new IntersectionObserver(setInfo, infoOptions);
-        infoObserver.observe(image);
-    }
     loadNextChapter(images, levelThreeContainer) {
         // load next chapter
         const nextChapter = (entries, observer) => {
@@ -882,9 +876,9 @@ class NhManga extends Manga {
                     image.removeAttribute(Content.CLASS);
                     const currentLevelThreeHref = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
                     const levelTwoHref = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
-                    const localStorageChapters = JSON.parse(localStorage.getItem(levelTwoHref));
-                    const nextChapterIndex = localStorageChapters.indexOf(currentLevelThreeHref) - 1;
-                    const nextChapterHref = localStorageChapters[nextChapterIndex];
+                    const levelThreeHrefs = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const nextChapterIndex = levelThreeHrefs.indexOf(currentLevelThreeHref) - 1;
+                    const nextChapterHref = levelThreeHrefs[nextChapterIndex];
                     if (nextChapterHref) {
                         const nextChapterImages = await this.getMangaImages(nextChapterHref, false);
                         await this.loadMangaImage(nextChapterImages, levelThreeContainer);
@@ -907,7 +901,7 @@ class TokyoMotion extends Video {
         super(location.href);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelector(".prevnext");
     }
     getSearchResultsThumbnails() {
@@ -945,7 +939,7 @@ class KissJav extends Video {
         super(location.href);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelector(".pagination-next");
     }
     getSearchResultsThumbnails() {
@@ -990,7 +984,7 @@ class YtBoob extends Video {
         super(location.href);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelectorAll(".pagination-nav")[1].children[0];
     }
     getSearchResultsThumbnails() {
@@ -1024,7 +1018,7 @@ class NHentai extends HManga {
         super(location.href, fullscreen);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelector(".next");
     }
     getSearchResultsThumbnails() {
@@ -1046,6 +1040,9 @@ class NHentai extends HManga {
         const galleryThumbnailCollection = mangaDocument.querySelector(".thumbs").children;
         const thumbnails = [];
         thumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
+        const names = mangaDocument.querySelectorAll(".name");
+        const totalPages = names.item(names.length - 1);
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoHref, totalPages.innerText);
         return thumbnails;
     }
     getLevelThreeAnchor(item) {
@@ -1056,11 +1053,9 @@ class NHentai extends HManga {
         const parts = levelThreeHref.split("/");
         return parts[parts.length - 2]; // the penultimate part
     }
-    getLastAvailableTwoInnerText() {
-        return "To be implemented...";
-    }
-    async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-        // yeah well, nhentai is throwing cloudflare errors, we need to change the logic
+    getLastAvailableTwoInnerText(levelTwoHref) {
+        const lastAvailableTwoInnerText = localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
+        return lastAvailableTwoInnerText ? lastAvailableTwoInnerText : "Unknown";
     }
     // level two
     removeExtraDiv() {
@@ -1105,7 +1100,7 @@ class ExHentai extends HManga {
         super(location.href, fullscreen);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children[10].children[0];
     }
     getSearchResultsThumbnails() {
@@ -1118,6 +1113,10 @@ class ExHentai extends HManga {
         const levelTwoAnchor = searchResultsThumbnail.children[1].children[0];
         const thumbnail = levelTwoAnchor.children[0];
         this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    saveLastAvailableTwo(levelTwoAnchor) {
+        const totalPages = levelTwoAnchor.parentElement.parentElement.querySelector(".ir").parentElement.children[1];
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, totalPages.innerText);
     }
     async getMangaCollection(levelTwoHref) {
         const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
@@ -1147,12 +1146,6 @@ class ExHentai extends HManga {
             pageThumbnails.splice(0, 0, ...Array.from(galleryThumbnailCollection));
             thumbnails.push(...pageThumbnails);
         }
-        const levelThreeHrefs = [];
-        for (const thumbnail of thumbnails) {
-            const anchor = thumbnail.children[0];
-            levelThreeHrefs.push(anchor.href);
-        }
-        localStorage.setItem(levelTwoHref, JSON.stringify(levelThreeHrefs));
         return thumbnails;
     }
     getLevelThreeAnchor(item) {
@@ -1162,10 +1155,8 @@ class ExHentai extends HManga {
         const levelTwoThumbnail = levelThreeAnchor.children[0];
         return levelTwoThumbnail.alt;
     }
-    getLastAvailableTwoInnerText() {
-        return "To be implemented...";
-    }
-    async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
+    getLastAvailableTwoInnerText(levelTwoHref) {
+        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
     }
     // level two
     getLevelTwoThumbnail(levelThreeAnchor) {
@@ -1179,8 +1170,8 @@ class ExHentai extends HManga {
         const levelThreeHref = elementContainer.getAttribute(ExHentai.DATA_LEVEL_THREE_HREF);
         const levelTwoContainer = document.getElementById(ExHentai.L2_CONTAINER_ID);
         const levelTwoHref = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
-        localStorage.setItem(levelThreeHref, levelTwoHref);
-        const levelThreeHrefs = JSON.parse(localStorage.getItem(levelTwoHref));
+        localStorage.setItem(Content.LEVEL_TWO_HREF + levelThreeHref, levelTwoHref);
+        const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
         let index = levelThreeHrefs.indexOf(levelThreeHref);
         const promises = [];
         for (index; index < levelThreeHrefs.length; index++) {
@@ -1191,9 +1182,7 @@ class ExHentai extends HManga {
         const responses = await Promise.all(promises); // parallel requests everywhere
         const nlPromises = [];
         for (const response of responses) {
-            const nl = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
-            const nlHref = response.baseURI + "?nl=" + nl;
-            const nlPromise = Utilities.getResponseDocument(nlHref);
+            const nlPromise = Utilities.getResponseDocument(this.getNlHref(response));
             nlPromises.push(nlPromise);
         }
         const nlResponses = await Promise.all(nlPromises); // parallel requests everywhere
@@ -1202,14 +1191,15 @@ class ExHentai extends HManga {
             const nlImage = nlResponse.getElementById("img");
             srcs.push(nlImage.src);
         }
-        localStorage.setItem(levelTwoHref, JSON.stringify(srcs));
+        localStorage.setItem(Content.SOURCES + levelTwoHref, JSON.stringify(srcs));
         window.open(levelThreeHref, levelTwoHref);
     }
+    getNlHref(response) {
+        const nl = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+        return response.baseURI + "?nl=" + nl;
+    }
     async getLevelThreeImage(imageDocument) {
-        // use nl instead of the image
-        const nl = imageDocument.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
-        const nlHref = imageDocument.baseURI + "?nl=" + nl;
-        const nlDocument = await Utilities.getResponseDocument(nlHref);
+        const nlDocument = await Utilities.getResponseDocument(this.getNlHref(imageDocument));
         return nlDocument.getElementById("i3").children[0].children[0];
     }
     setNextAnchor(imageDocument, levelThreeContainer) {
@@ -1229,7 +1219,7 @@ class KissManga extends NhManga {
         super(location.href);
     }
     // level one
-    getAnchor() {
+    getNextSearchResultsAnchor() {
         return this.searchResultsDocument.querySelector(".nextpostslink");
     }
     getSearchResultsThumbnails() {
@@ -1246,6 +1236,10 @@ class KissManga extends NhManga {
         }
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
+    saveLastAvailableTwo(levelTwoAnchor) {
+        const lastChapter = levelTwoAnchor.parentElement.parentElement.querySelector(".btn-link");
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, lastChapter.innerText);
+    }
     async getMangaCollection(levelTwoHref) {
         const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
         const nodeChapters = mangaDocument.querySelector(".main").children;
@@ -1257,13 +1251,10 @@ class KissManga extends NhManga {
         return item.children[0];
     }
     getItemName(levelThreeAnchor) {
-        return levelThreeAnchor.innerText.trim();
+        return this.getChapterButtonInnerText(levelThreeAnchor);
     }
-    getLastAvailableTwoInnerText() {
-        return "To be implemented...";
-    }
-    async updateLevelOne(levelTwoHref, lastReadOne, lastReadTwo, lastAvailableOne, lastAvailableTwo) {
-        // yeah well, kissmanga throws a lot of 429s, we need to change the logic
+    getLastAvailableTwoInnerText(levelTwoHref) {
+        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
     }
     // level two
     getChapterButtonInnerText(levelThreeAnchor) {
