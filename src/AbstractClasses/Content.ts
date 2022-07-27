@@ -167,7 +167,7 @@ img, video {
     protected static readonly NONE: string = "none";
     protected static readonly LOADING___: string = "Loading...";
     protected static readonly SOURCES: string = "sources";
-    protected static readonly HREFS: string = "hrefs";
+    protected static readonly LEVEL_THREE_HREFS: string = "level-three-hrefs";
     protected static readonly ITEM_NAME: string = "item-name";
     protected static readonly LAST_AVAILABLE: string = "last-available";
     protected static readonly LEVEL_TWO_HREF: string = "level-two-href";

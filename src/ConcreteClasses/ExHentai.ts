@@ -92,7 +92,7 @@ class ExHentai extends HManga {
         const levelTwoHref: string = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
         localStorage.setItem(Content.LEVEL_TWO_HREF + levelThreeHref, levelTwoHref);
 
-        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref)) as string[];
+        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref)) as string[];
         let index: number = levelThreeHrefs.indexOf(levelThreeHref);
         const promises: Promise<Document>[] = [];
         for (index; index < levelThreeHrefs.length; index++) {

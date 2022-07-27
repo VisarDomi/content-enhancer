@@ -53,7 +53,7 @@ abstract class HManga extends Manga {
             thumbnailContainer.appendChild(lastReadContainer);
             levelTwoThumbnailContainers.push(thumbnailContainer);
         }
-        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
+        localStorage.setItem(Content.LEVEL_THREE_HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
 
         await this.loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
     }

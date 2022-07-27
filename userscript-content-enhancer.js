@@ -1,9 +1,13 @@
 // ==UserScript==
 // @name         Content Enhancer
 // @namespace    visardomi4@gmail.com
-// @version      1.0
-// @description  Enhance the content
+// @version      1.1
+// @description  2022-07-27
 // @author       Visar Domi
+// @source       https://github.com/VisarDomi/content-enhancer
+// @updateURL    https://raw.githubusercontent.com/VisarDomi/content-enhancer/main/userscript-content-enhancer.js
+// @downloadURL  https://raw.githubusercontent.com/VisarDomi/content-enhancer/main/userscript-content-enhancer.js
+// @supportURL   https://github.com/VisarDomi/content-enhancer/issues
 // @match        https://1stkissmanga.io/*
 // @run-at       document-start
 // @grant        none
@@ -523,7 +527,7 @@ Content.FLEX = "flex";
 Content.NONE = "none";
 Content.LOADING___ = "Loading...";
 Content.SOURCES = "sources";
-Content.HREFS = "hrefs";
+Content.LEVEL_THREE_HREFS = "level-three-hrefs";
 Content.ITEM_NAME = "item-name";
 Content.LAST_AVAILABLE = "last-available";
 Content.LEVEL_TWO_HREF = "level-two-href";
@@ -607,7 +611,7 @@ class Manga extends Content {
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         try {
-            const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
+            const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref));
             const readCollection = [];
             for (const levelThreeHref of levelThreeHrefs) {
                 const lastRead = parseInt(localStorage.getItem(levelThreeHref));
@@ -760,7 +764,7 @@ class HManga extends Manga {
             thumbnailContainer.appendChild(lastReadContainer);
             levelTwoThumbnailContainers.push(thumbnailContainer);
         }
-        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
+        localStorage.setItem(Content.LEVEL_THREE_HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
         await this.loadThumbnailContainer(levelTwoThumbnailContainers, levelTwoContainer);
     }
     removeExtraDiv() { }
@@ -828,7 +832,7 @@ class NhManga extends Manga {
             chapterContainer.appendChild(lastReadContainer);
             levelTwoContainer.appendChild(chapterContainer);
         }
-        localStorage.setItem(Content.HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
+        localStorage.setItem(Content.LEVEL_THREE_HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
     }
     // level three
     async loadImages(levelThreeContainer) {
@@ -876,7 +880,7 @@ class NhManga extends Manga {
                     image.removeAttribute(Content.CLASS);
                     const currentLevelThreeHref = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
                     const levelTwoHref = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
-                    const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
+                    const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref));
                     const nextChapterIndex = levelThreeHrefs.indexOf(currentLevelThreeHref) - 1;
                     const nextChapterHref = levelThreeHrefs[nextChapterIndex];
                     if (nextChapterHref) {
@@ -1171,7 +1175,7 @@ class ExHentai extends HManga {
         const levelTwoContainer = document.getElementById(ExHentai.L2_CONTAINER_ID);
         const levelTwoHref = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
         localStorage.setItem(Content.LEVEL_TWO_HREF + levelThreeHref, levelTwoHref);
-        const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
+        const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref));
         let index = levelThreeHrefs.indexOf(levelThreeHref);
         const promises = [];
         for (index; index < levelThreeHrefs.length; index++) {
@@ -1296,7 +1300,7 @@ async function load() {
             content = new NHentai(true);
         }
     }
-    else if (href.includes("exhentai") || href.includes("e-hentai")) {
+    else if (href.includes("exhentai") || href.includes("e-hentai") && !href.includes(".php")) {
         if (href.match(/\//g).length !== 5) {
             content = new ExHentai();
         }

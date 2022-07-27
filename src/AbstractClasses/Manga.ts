@@ -6,7 +6,7 @@ abstract class Manga extends Content {
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         try {
-            const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref)) as string[];
+            const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref)) as string[];
             const readCollection: { name: string, lastRead: number }[] = [];
             for (const levelThreeHref of levelThreeHrefs) {
                 const lastRead: number = parseInt(localStorage.getItem(levelThreeHref));

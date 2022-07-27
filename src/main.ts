@@ -13,7 +13,7 @@ async function load() {
         } else {
             content = new NHentai(true);
         }
-    } else if (href.includes("exhentai") || href.includes("e-hentai")) {
+    } else if (href.includes("exhentai") || href.includes("e-hentai") && !href.includes(".php")) {
         if (href.match(/\//g).length !== 5) {
             content = new ExHentai();
         } else {
