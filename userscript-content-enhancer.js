@@ -11,6 +11,7 @@
 // @run-at       document-start
 // @match        https://1stkissmanga.io/*
 // @match        https://www.mcreader.net/*
+// @match        https://mangahub.io/*
 // @grant        none
 // @match        https://www.tokyomotion.net/*
 // @match        https://kissjav.li/*
@@ -849,7 +850,7 @@ class NhManga extends Manga {
         const images = [];
         const chapter = await Utilities.getResponseDocument(levelThreeHref, retry);
         if (chapter !== null) {
-            this.pushImage(chapter, levelThreeHref, images);
+            await this.pushImage(chapter, levelThreeHref, images);
         }
         if (images.length > 0) {
             const image = images.pop();
@@ -1261,7 +1262,7 @@ class KissManga extends NhManga {
         return levelThreeAnchor.innerText.trim();
     }
     // level three
-    pushImage(chapter, levelThreeHref, images) {
+    async pushImage(chapter, levelThreeHref, images) {
         const children = chapter.querySelectorAll(".page-break");
         for (const child of children) {
             const levelThreeImage = child.children[0];
@@ -1274,6 +1275,86 @@ class KissManga extends NhManga {
     }
 }
 KissManga.DATA_LAZY_SRC = "data-lazy-src";
+
+class MangaHub extends NhManga {
+    constructor() {
+        super(location.href);
+    }
+    // level one
+    getNextSearchResultsAnchor() {
+        return this.searchResultsDocument.querySelector(".next").children[0];
+    }
+    getSearchResultsThumbnails() {
+        const thumbnailCollection = [];
+        const selectedElements = this.searchResultsDocument.querySelectorAll(".media");
+        thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
+        return thumbnailCollection;
+    }
+    appendThumbnailContainer(searchResultsThumbnail) {
+        const levelTwoAnchor = searchResultsThumbnail.children[0].children[0];
+        const thumbnail = levelTwoAnchor.children[0];
+        this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    saveLastAvailableTwo(levelTwoAnchor) {
+        const anchor = levelTwoAnchor.parentElement.parentElement.children[1].children[1].children[0];
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, anchor.innerText);
+    }
+    // level two
+    async getMangaCollection(levelTwoHref) {
+        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
+        const nodeChapters = mangaDocument.querySelectorAll(".list-group-item");
+        const chapters = [];
+        chapters.splice(0, 0, ...Array.from(nodeChapters));
+        return chapters;
+    }
+    getLevelThreeAnchor(item) {
+        return item.children[0];
+    }
+    getItemName(levelThreeAnchor) {
+        const chapterTitle = levelThreeAnchor.children[0].children[0];
+        return chapterTitle.innerText;
+    }
+    // level three
+    async pushImage(chapter, levelThreeHref, images) {
+        const imageElement = chapter.querySelector("#mangareader").children[0].children[1].children[1];
+        const baseFormat = imageElement.src.split("1.jpg")[0];
+        const levelThreeContainer = document.getElementById(Content.L3_CONTAINER_ID);
+        const TEMPORARY = "temporary";
+        const tempContainer = Utilities.createTagWithId("div", TEMPORARY);
+        levelThreeContainer.appendChild(tempContainer);
+        const tempImages = [];
+        for (let i = 1; i < 100; i++) { // 1000 requests are too much (don't spam the server)
+            const src = baseFormat + i + ".jpg";
+            const image = new Image();
+            image.src = src;
+            const pushedImage = { i, src, loading: true };
+            tempImages.push(pushedImage);
+            tempContainer.appendChild(image);
+            image.onload = () => {
+                tempImages[tempImages.indexOf(pushedImage)].loading = false;
+            };
+            image.onerror = () => {
+                tempImages.splice(tempImages.indexOf(pushedImage), 1);
+            };
+        }
+        let stillLoading = true;
+        while (stillLoading) { // polling - a better structure is to use notification events
+            await Utilities.waitFor(100);
+            const filtered = tempImages.filter(item => item.loading);
+            if (filtered.length === 0) {
+                stillLoading = false; // break out of the loop if all the items are loaded
+            }
+        }
+        tempContainer.remove();
+        // now the list of tempImages can be pushed
+        for (const tempImage of tempImages) {
+            const image = new Image();
+            image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
+            image.setAttribute(Content.DATA_SRC, tempImage.src);
+            images.push(image);
+        }
+    }
+}
 
 class McReader extends NhManga {
     constructor() {
@@ -1315,7 +1396,7 @@ class McReader extends NhManga {
         return chapterTitle.innerText.trim();
     }
     // level three
-    pushImage(chapter, levelThreeHref, images) {
+    async pushImage(chapter, levelThreeHref, images) {
         const chapterReader = chapter.querySelector("#chapter-reader");
         const levelThreeImages = chapterReader.querySelectorAll("img");
         for (const levelThreeImage of levelThreeImages) {
@@ -1362,6 +1443,9 @@ async function load() {
     }
     else if (href.includes("mcreader")) {
         content = new McReader();
+    }
+    else if (href.includes("mangahub")) {
+        content = new MangaHub();
     }
     await content?.init();
 }

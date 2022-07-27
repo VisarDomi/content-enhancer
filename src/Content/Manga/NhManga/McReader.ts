@@ -49,7 +49,7 @@ class McReader extends NhManga {
     }
 
     // level three
-    protected pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): void {
+    protected async pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): Promise<void> {
         const chapterReader: HTMLDivElement = chapter.querySelector("#chapter-reader");
         const levelThreeImages: NodeListOf<HTMLImageElement> = chapterReader.querySelectorAll("img") as NodeListOf<HTMLImageElement>;
         for (const levelThreeImage of levelThreeImages) {

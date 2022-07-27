@@ -23,6 +23,8 @@ async function load() {
         content = new KissManga();
     } else if (href.includes("mcreader")) {
         content = new McReader();
+    } else if (href.includes("mangahub")) {
+        content = new MangaHub();
     }
 
     await content?.init();

@@ -61,7 +61,7 @@ abstract class NhManga extends Manga {
         const images: HTMLImageElement[] = [];
         const chapter: Document = await Utilities.getResponseDocument(levelThreeHref, retry);
         if (chapter !== null) {
-            this.pushImage(chapter, levelThreeHref, images);
+            await this.pushImage(chapter, levelThreeHref, images);
         }
 
         if (images.length > 0) {
@@ -74,7 +74,7 @@ abstract class NhManga extends Manga {
     }
 
     // the image pushed should have a DATA_SRC and DATA_LEVEL_THREE_HREF
-    protected abstract pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): void;
+    protected abstract pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): Promise<void>;
 
     protected async loadMangaImage(images: HTMLImageElement[], levelThreeContainer: HTMLDivElement, index: number = 0): Promise<void> {
         if (index < images.length && !this.breakLoop) {

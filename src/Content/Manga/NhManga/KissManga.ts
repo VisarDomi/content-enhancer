@@ -51,7 +51,7 @@ class KissManga extends NhManga {
     }
 
     // level three
-    protected pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): void {
+    protected async pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): Promise<void> {
         const children: NodeListOf<HTMLDivElement> = chapter.querySelectorAll(".page-break") as NodeListOf<HTMLDivElement>;
         for (const child of children) {
             const levelThreeImage: HTMLImageElement = child.children[0] as HTMLImageElement;
