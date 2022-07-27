@@ -25,6 +25,7 @@ class NHentai extends HManga {
         this.pushThumbnail(thumbnail, levelTwoAnchor);
     }
 
+    // level two
     protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
         const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const galleryThumbnailCollection: HTMLCollectionOf<HTMLDivElement> = mangaDocument.querySelector(".thumbs").children as HTMLCollectionOf<HTMLDivElement>;
@@ -54,7 +55,6 @@ class NHentai extends HManga {
         return lastAvailableTwoInnerText ? lastAvailableTwoInnerText : "Unknown";
     }
 
-    // level two
     protected removeExtraDiv(): void {
         // remove a div that gets added from other scripts:
         const removePotential: HTMLDivElement = document.querySelector("body").children[1] as HTMLDivElement;

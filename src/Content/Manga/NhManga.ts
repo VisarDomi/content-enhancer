@@ -21,7 +21,8 @@ abstract class NhManga extends Manga {
 
             // save to localStorage
             levelThreeHrefs.push(levelThreeHref);
-            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, this.getItemName(levelThreeAnchor));
+            const itemName: string = this.getItemName(levelThreeAnchor);
+            localStorage.setItem(Content.ITEM_NAME + levelThreeHref, itemName);
 
             // add the chapter button
             const chapterContainer: HTMLDivElement = Utilities.createTagWithClassName("div", "chapter-container") as HTMLDivElement;
@@ -31,7 +32,7 @@ abstract class NhManga extends Manga {
             }
 
             const chapterButton: HTMLButtonElement = Utilities.createTagWithClassName("button", "chapter-button") as HTMLButtonElement;
-            const innerText = this.getChapterButtonInnerText(levelThreeAnchor);
+            const innerText = itemName;
             const maxChapterNameLength: number = 15;
             chapterButton.innerText = innerText.substring(0, maxChapterNameLength);
             chapterContainer.appendChild(chapterButton);
@@ -48,8 +49,6 @@ abstract class NhManga extends Manga {
         }
         localStorage.setItem(Content.LEVEL_THREE_HREFS + levelTwoHref, JSON.stringify(levelThreeHrefs));
     }
-
-    protected abstract getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string;
 
     // level three
     protected async loadImages(levelThreeContainer: HTMLDivElement): Promise<void> {

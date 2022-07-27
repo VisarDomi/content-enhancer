@@ -21,6 +21,8 @@ async function load() {
         }
     } else if (href.includes("kissmanga")) {
         content = new KissManga();
+    } else if (href.includes("mcreader")) {
+        content = new McReader();
     }
 
     await content?.init();

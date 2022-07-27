@@ -32,6 +32,7 @@ class KissManga extends NhManga {
         localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, lastChapter.innerText);
     }
 
+    // level two
     protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
         const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const nodeChapters: HTMLCollectionOf<HTMLLIElement> = mangaDocument.querySelector(".main").children as HTMLCollectionOf<HTMLLIElement>;
@@ -46,20 +47,11 @@ class KissManga extends NhManga {
     }
 
     protected getItemName(levelThreeAnchor: HTMLAnchorElement): string {
-        return this.getChapterButtonInnerText(levelThreeAnchor);
-    }
-
-    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
-        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
-    }
-
-    // level two
-    protected getChapterButtonInnerText(levelThreeAnchor: HTMLAnchorElement): string {
         return levelThreeAnchor.innerText.trim();
-    };
+    }
 
     // level three
-    protected async pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): Promise<void> {
+    protected pushImage(chapter: Document, levelThreeHref: string, images: HTMLImageElement[]): void {
         const children: NodeListOf<HTMLDivElement> = chapter.querySelectorAll(".page-break") as NodeListOf<HTMLDivElement>;
         for (const child of children) {
             const levelThreeImage: HTMLImageElement = child.children[0] as HTMLImageElement;

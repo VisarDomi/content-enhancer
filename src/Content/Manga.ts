@@ -36,7 +36,9 @@ abstract class Manga extends Content {
 
     protected abstract getLastAvailableOneInnerText(): string;
 
-    protected abstract getLastAvailableTwoInnerText(levelTwoHref: string): string;
+    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
+        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
+    }
 
     // level two
     protected async loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): Promise<void> {

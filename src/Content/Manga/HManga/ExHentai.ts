@@ -27,6 +27,7 @@ class ExHentai extends HManga {
         localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, totalPages.innerText);
     }
 
+    // level two
     protected async getMangaCollection(levelTwoHref: string): Promise<HTMLElement[]> {
         const mangaDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
 
@@ -72,11 +73,6 @@ class ExHentai extends HManga {
         return levelTwoThumbnail.alt;
     }
 
-    protected getLastAvailableTwoInnerText(levelTwoHref: string): string {
-        return localStorage.getItem(Content.LAST_AVAILABLE + levelTwoHref);
-    }
-
-    // level two
     protected getLevelTwoThumbnail(levelThreeAnchor: HTMLAnchorElement): HTMLImageElement {
         return levelThreeAnchor.children[0] as HTMLImageElement;
     }
