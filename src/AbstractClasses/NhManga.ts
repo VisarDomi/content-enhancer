@@ -105,7 +105,7 @@ abstract class NhManga extends Manga {
                     image.removeAttribute(Content.CLASS);
                     const currentLevelThreeHref: string = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
                     const levelTwoHref: string = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
-                    const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref)) as string[];
                     const nextChapterIndex: number = levelThreeHrefs.indexOf(currentLevelThreeHref) - 1;
                     const nextChapterHref: string = levelThreeHrefs[nextChapterIndex];
                     if (nextChapterHref) {

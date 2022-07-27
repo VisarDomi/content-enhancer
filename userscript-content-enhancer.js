@@ -876,7 +876,7 @@ class NhManga extends Manga {
                     image.removeAttribute(Content.CLASS);
                     const currentLevelThreeHref = images[0].getAttribute(Content.DATA_LEVEL_THREE_HREF);
                     const levelTwoHref = document.getElementById(Content.L2_CONTAINER_ID).getAttribute(Content.DATA_LEVEL_TWO_HREF);
-                    const levelThreeHrefs = JSON.parse(localStorage.getItem(levelTwoHref));
+                    const levelThreeHrefs = JSON.parse(localStorage.getItem(Content.HREFS + levelTwoHref));
                     const nextChapterIndex = levelThreeHrefs.indexOf(currentLevelThreeHref) - 1;
                     const nextChapterHref = levelThreeHrefs[nextChapterIndex];
                     if (nextChapterHref) {
