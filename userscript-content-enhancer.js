@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Content Enhancer
 // @namespace    visardomi4@gmail.com
-// @version      1.2
-// @description  2022-07-27
+// @version      1.3
+// @description  2022-07-28
 // @author       Visar Domi
 // @source       https://github.com/VisarDomi/content-enhancer
 // @updateURL    https://raw.githubusercontent.com/VisarDomi/content-enhancer/main/userscript-content-enhancer.js
@@ -12,6 +12,7 @@
 // @match        https://1stkissmanga.io/*
 // @match        https://www.mcreader.net/*
 // @match        https://mangahub.io/*
+// @match        https://www.readm.org/*
 // @grant        none
 // @match        https://www.tokyomotion.net/*
 // @match        https://kissjav.li/*
@@ -359,6 +360,21 @@ class Content {
         const pFive = document.createElement("p");
         levelOneContainer.appendChild(pFive);
         pFive.innerText = `Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales.`;
+        const pSix = document.createElement("p");
+        levelOneContainer.appendChild(pSix);
+        pSix.innerText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero. Sed dignissim lacinia nunc.`;
+        const pSeven = document.createElement("p");
+        levelOneContainer.appendChild(pSeven);
+        pSeven.innerText = `Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.`;
+        const pEight = document.createElement("p");
+        levelOneContainer.appendChild(pEight);
+        pEight.innerText = `Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilisi. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapien. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus.`;
+        const pNine = document.createElement("p");
+        levelOneContainer.appendChild(pNine);
+        pNine.innerText = `Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc, viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ultrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi. Integer lacinia sollicitudin massa.`;
+        const pTen = document.createElement("p");
+        levelOneContainer.appendChild(pTen);
+        pTen.innerText = `Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales.`;
     }
 }
 Content.CSS_INNER_HTML = `
@@ -1410,6 +1426,63 @@ class McReader extends NhManga {
     }
 }
 
+class ReadM extends NhManga {
+    constructor() {
+        super(location.href);
+    }
+    // level one
+    getNextSearchResultsAnchor() {
+        const paginationChildren = this.searchResultsDocument.querySelector(".pagination").children;
+        return paginationChildren[paginationChildren.length - 2].children[0];
+    }
+    getSearchResultsThumbnails() {
+        const thumbnailCollection = [];
+        const selectedElements = this.searchResultsDocument.querySelectorAll(".segment-poster-sm");
+        thumbnailCollection.splice(0, 0, ...Array.from(selectedElements));
+        return thumbnailCollection;
+    }
+    appendThumbnailContainer(searchResultsThumbnail) {
+        const levelTwoAnchor = searchResultsThumbnail.querySelector("a");
+        const thumbnail = searchResultsThumbnail.querySelector("img");
+        thumbnail.src = thumbnail.getAttribute(Content.DATA_SRC);
+        this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    saveLastAvailableTwo(levelTwoAnchor) {
+        const chapters = levelTwoAnchor.parentElement.parentElement.querySelector(".chapters").children[0].children[0];
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, chapters.innerText);
+    }
+    // level two
+    async getMangaCollection(levelTwoHref) {
+        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
+        const episodesLists = mangaDocument.querySelectorAll(".episodes-list");
+        const chapters = [];
+        for (const episodeList of episodesLists) {
+            const partialChapters = episodeList.children[0].children;
+            for (const chapter of partialChapters) {
+                chapters.push(chapter);
+            }
+        }
+        return chapters;
+    }
+    getLevelThreeAnchor(item) {
+        return item.querySelector("a");
+    }
+    getItemName(levelThreeAnchor) {
+        return levelThreeAnchor.innerText;
+    }
+    // level three
+    async pushImage(chapter, levelThreeHref, images) {
+        const chapterImages = chapter.querySelector(".ch-images");
+        const levelThreeImages = chapterImages.querySelectorAll("img");
+        for (const levelThreeImage of levelThreeImages) {
+            const image = new Image();
+            image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
+            image.setAttribute(Content.DATA_SRC, levelThreeImage.src);
+            images.push(image);
+        }
+    }
+}
+
 async function load() {
     const href = location.href;
     let content = null;
@@ -1446,6 +1519,9 @@ async function load() {
     }
     else if (href.includes("mangahub")) {
         content = new MangaHub();
+    }
+    else if (href.includes("readm")) {
+        content = new ReadM();
     }
     await content?.init();
 }

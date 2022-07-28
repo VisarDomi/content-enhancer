@@ -25,6 +25,8 @@ async function load() {
         content = new McReader();
     } else if (href.includes("mangahub")) {
         content = new MangaHub();
+    } else if (href.includes("readm")) {
+        content = new ReadM();
     }
 
     await content?.init();
