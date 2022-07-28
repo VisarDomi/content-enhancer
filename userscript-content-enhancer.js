@@ -291,12 +291,14 @@ class Content {
             thumbnail.onerror = async () => {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             };
-            if (index === thumbnailContainersLength - 1) {
+            const isLastElement = index === (thumbnailContainersLength - 1);
+            const isSearchResultThumbnail = container.id === Content.L1_CONTAINER_ID;
+            if (isLastElement && isSearchResultThumbnail) {
                 thumbnail.className = Content.OBSERVE_THUMBNAIL;
             }
             container.appendChild(thumbnailContainer);
         }
-        else {
+        else if (container.id === Content.L1_CONTAINER_ID) {
             this.observeLastThumbnail();
             for (const thumbnailContainer of thumbnailContainers) {
                 await this.updateThumbnailContainer(thumbnailContainer);
