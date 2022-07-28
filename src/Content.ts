@@ -290,14 +290,16 @@ img, video {
             thumbnail.onload = async () => {
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
-            thumbnail.onerror = async () => {
+            thumbnail.onerror = async () => { // don't fail on error
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
-            if (index === thumbnailContainersLength - 1) {
+            const isLastElement: boolean = index === (thumbnailContainersLength - 1);
+            const isSearchResultThumbnail: boolean = container.id === Content.L1_CONTAINER_ID;
+            if (isLastElement && isSearchResultThumbnail) {
                 thumbnail.className = Content.OBSERVE_THUMBNAIL;
             }
             container.appendChild(thumbnailContainer);
-        } else {
+        } else if (container.id === Content.L1_CONTAINER_ID) {
             this.observeLastThumbnail();
             for (const thumbnailContainer of thumbnailContainers) {
                 await this.updateThumbnailContainer(thumbnailContainer);

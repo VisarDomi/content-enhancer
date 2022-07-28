@@ -13,5 +13,4 @@ A userscript which enhances the navigation of manga sites:
 - load all the chapters in a long strip format
 
 ## TODO:
-- fix multiple thumbnails showing on next search results on exhentai - maybe by going back to non-fullscreen
 - add gifs to the Features subheading
