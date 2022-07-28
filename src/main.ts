@@ -27,6 +27,8 @@ async function load() {
         content = new MangaHub();
     } else if (href.includes("readm")) {
         content = new ReadM();
+    } else if (href.includes("isekaiscan")) {
+        content = new IsekaiScan();
     }
 
     await content?.init();

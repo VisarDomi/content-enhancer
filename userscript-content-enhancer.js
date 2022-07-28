@@ -13,6 +13,7 @@
 // @match        https://www.mcreader.net/*
 // @match        https://mangahub.io/*
 // @match        https://www.readm.org/*
+// @match        https://isekaiscan.com/*
 // @grant        none
 // @match        https://www.tokyomotion.net/*
 // @match        https://kissjav.li/*
@@ -1483,6 +1484,68 @@ class ReadM extends NhManga {
     }
 }
 
+class IsekaiScan extends NhManga {
+    constructor() {
+        super(location.href);
+    }
+    // level one
+    getNextSearchResultsAnchor() {
+        return this.searchResultsDocument.querySelector(".nav-previous").children[0];
+    }
+    getSearchResultsThumbnails() {
+        const thumbnailCollection = [];
+        const pageListingItem = this.searchResultsDocument.querySelectorAll(".page-listing-item");
+        for (const item of pageListingItem) {
+            const selectedElements = item.querySelectorAll(".badge-pos-1");
+            for (const element of selectedElements) {
+                thumbnailCollection.push(element);
+            }
+        }
+        return thumbnailCollection;
+    }
+    appendThumbnailContainer(searchResultsThumbnail) {
+        const levelTwoAnchor = searchResultsThumbnail.querySelector("a");
+        const thumbnail = searchResultsThumbnail.querySelector("img");
+        const dataSrcSet = thumbnail.getAttribute("data-srcset");
+        if (dataSrcSet !== null) {
+            const parts = dataSrcSet.split(",");
+            thumbnail.src = parts[parts.length - 1].split(" ")[1];
+        }
+        else {
+            thumbnail.src = thumbnail.getAttribute(Content.DATA_SRC);
+        }
+        this.pushThumbnail(thumbnail, levelTwoAnchor);
+    }
+    saveLastAvailableTwo(levelTwoAnchor) {
+        const latestChapter = levelTwoAnchor.parentElement.nextElementSibling.querySelectorAll("a").item(1);
+        localStorage.setItem(Content.LAST_AVAILABLE + levelTwoAnchor.href, latestChapter.innerText.trim());
+    }
+    // level two
+    async getMangaCollection(levelTwoHref) {
+        const mangaDocument = await Utilities.getResponseDocument(levelTwoHref);
+        const nodeChapters = mangaDocument.querySelectorAll(".wp-manga-chapter");
+        const chapters = [];
+        chapters.splice(0, 0, ...Array.from(nodeChapters));
+        return chapters;
+    }
+    getLevelThreeAnchor(item) {
+        return item.querySelector("a");
+    }
+    getItemName(levelThreeAnchor) {
+        return levelThreeAnchor.innerText.trim();
+    }
+    // level three
+    async pushImage(chapter, levelThreeHref, images) {
+        const imageContainers = chapter.querySelector(".read-container").querySelectorAll(".page-break.no-gaps");
+        for (const imageContainer of imageContainers) {
+            const image = new Image();
+            image.setAttribute(Content.DATA_LEVEL_THREE_HREF, levelThreeHref);
+            image.setAttribute(Content.DATA_SRC, imageContainer.children[0].getAttribute(Content.DATA_SRC).trim());
+            images.push(image);
+        }
+    }
+}
+
 async function load() {
     const href = location.href;
     let content = null;
@@ -1522,6 +1585,9 @@ async function load() {
     }
     else if (href.includes("readm")) {
         content = new ReadM();
+    }
+    else if (href.includes("isekaiscan")) {
+        content = new IsekaiScan();
     }
     await content?.init();
 }
