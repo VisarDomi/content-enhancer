@@ -1,5 +1,5 @@
 # content-enhancer
-- This userscript makes it possible to read manga in fullscreen using Safari iOS reader mode. It supports these manga sites:
+- This userscript is designed to work for Safari iOS. It supports these manga sites:
   * https://1stkissmanga.io
   * https://www.mcreader.net
   * https://mangahub.io
