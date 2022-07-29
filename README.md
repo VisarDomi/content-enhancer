@@ -10,6 +10,6 @@
 ## How to use the userscript?
 1. Download [the userscript app in app store](https://apps.apple.com/us/app/userscripts/id1463298887)
 2. Setup userscripts by following [their documentation for iOS](https://github.com/quoid/userscripts#usage)
-3. Copy the file [userscript-content-enhancer](./userscript-content-enhancer.js) to the working directory of the userscript app (explained in step 2). For example, on Windows: C:\Users\User\iCloudDrive\Safari iOS userscripts
+3. Download the file [userscript-content-enhancer](https://github.com/VisarDomi/content-enhancer/releases/download/v1.3.0/userscript-content-enhancer.js) to the working directory of the userscript app (explained in step 2). For example, on Windows: C:\Users\User\iCloudDrive\Safari iOS userscripts
 4. Start using the script by going to one of the above [sites](https://mangahub.io/search?q=&order=LATEST&genre=action)
 5. Note: The back button is invisible in the top 3rd of the screen
