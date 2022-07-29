@@ -2,7 +2,7 @@
 ## What does the script do?
 Check out the video at 01:38
 
-[Content Enhancer v1.3](https://youtu.be/ksu18epdfj0?t=98)
+[![Content Enhancer v1.3](https://i.ytimg.com/vi/ksu18epdfj0/maxresdefault.jpg)](https://youtu.be/ksu18epdfj0?t=98)
 
 This userscript is designed to work for Safari iOS. It supports these manga sites:
 * https://1stkissmanga.io
@@ -16,7 +16,7 @@ The preferred use case is to search for [a genre](https://mangahub.io/search?q=&
 ## How to use the userscript?
 Watch this 3-minute video:
 
-[Content Enhancer v1.3](https://youtu.be/ksu18epdfj0)
+[![Content Enhancer v1.3](https://i.ytimg.com/vi/ksu18epdfj0/maxresdefault.jpg)](https://youtu.be/ksu18epdfj0)
 
 or follow the instructions below:
 1. Download [the userscript app in app store](https://apps.apple.com/us/app/userscripts/id1463298887)
