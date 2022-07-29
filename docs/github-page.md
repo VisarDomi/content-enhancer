@@ -1,5 +1,3 @@
-Read this documentation with interactive videos: [https://visardomi.github.io/content-enhancer/](https://visardomi.github.io/content-enhancer/)
-
 # content-enhancer
 ## What does the script do?
 Check out the video at 01:38
