@@ -1,4 +1,6 @@
 # content-enhancer
+## Go back to the [github page](https://github.com/VisarDomi/content-enhancer)
+
 ## What does the script do?
 Check out the video at 01:38
 
