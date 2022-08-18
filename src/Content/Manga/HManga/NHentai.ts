@@ -1,8 +1,4 @@
 class NHentai extends HManga {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".next") as HTMLAnchorElement;

@@ -1,8 +1,4 @@
 class ExHentai extends HManga {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children[10].children[0] as HTMLAnchorElement;

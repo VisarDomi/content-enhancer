@@ -1,8 +1,4 @@
 class TokyoMotion extends Video {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".prevnext") as HTMLAnchorElement;

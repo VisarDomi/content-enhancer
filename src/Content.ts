@@ -16,6 +16,10 @@ img, video {
     width: 100%;
 }
 
+video {
+    z-index: 1;
+}
+
 .level-one-thumbnail-container {
     position: relative;
 }
@@ -157,10 +161,14 @@ img, video {
     protected static readonly DATA_LEVEL_TWO_HREF: string = "data-level-two-href";
     protected static readonly DATA_LEVEL_THREE_HREF: string = "data-level-three-href";
     protected static readonly DATA_DURATION: string = "data-duration";
+    protected static readonly DATA_SEARCH_RESULT: string = "data-search-result";
     protected static readonly LEVEL_ONE_THUMBNAIL_CONTAINER: string = "level-one-thumbnail-container";
     protected static readonly LEVEL_TWO_THUMBNAIL_CONTAINER: string = "level-two-thumbnail-container";
     protected static readonly OBSERVE_THUMBNAIL: string = "observe-thumbnail";
     protected static readonly OBSERVE_IMAGE: string = "observe-image";
+    protected static readonly LATEST_CONTAINER = "latest-container";
+    protected static readonly LAST_WATCHED_ELEMENT = "last-watched-element";
+    protected static readonly LAST_AVAILABLE_ELEMENT = "last-available-element";
     protected static readonly LAST_WATCHED_1: string = "last-watched-one";
     protected static readonly LAST_WATCHED_2: string = "last-watched-two";
     protected static readonly LAST_AVAILABLE_1: string = "last-available-one";
@@ -170,24 +178,20 @@ img, video {
     protected static readonly FLEX: string = "flex";
     protected static readonly NONE: string = "none";
     protected static readonly LOADING___: string = "Loading...";
-    protected static readonly SOURCES: string = "sources";
     protected static readonly LEVEL_THREE_HREFS: string = "level-three-hrefs";
     protected static readonly ITEM_NAME: string = "item-name";
     protected static readonly LAST_AVAILABLE: string = "last-available";
-    protected static readonly LEVEL_TWO_HREF: string = "level-two-href";
 
-    private readonly href: string;
     protected searchResultsDocument: Document;
     protected thumbnailContainers: HTMLDivElement[];
     protected breakLoop: boolean;
     private nextSearchResultsHref: string;
     private searchResultsThumbnails: HTMLElement[];
 
-    protected constructor(href: string) {
-        this.href = href;
+    public constructor() {
     }
 
-    public async init() {
+    public async init(): Promise<void> {
         document.write("<html><head></head><body></body></html>");
         const body = document.querySelector("body");
         const head = document.querySelector("head");
@@ -197,11 +201,11 @@ img, video {
         styleTag.innerHTML = Content.CSS_INNER_HTML;
         head.appendChild(styleTag);
 
-        await this.load();
+        await this.load(window.location.href);
     }
 
     // level one
-    public async load(href: string = this.href): Promise<void> {
+    public async load(href: string): Promise<void> {
         this.searchResultsDocument = await Utilities.getResponseDocument(href);
         this.setNextSearchResultsHref();
         this.createThumbnailContainers();
@@ -241,9 +245,9 @@ img, video {
         thumbnailContainer.setAttribute(Content.DATA_LEVEL_TWO_HREF, levelTwoHref);
 
         const thumbnail: HTMLImageElement = new Image();
-        const latestContainer: HTMLDivElement = Utilities.createTagWithClassName("div", "latest-container") as HTMLDivElement;
-        const lastWatched: HTMLDivElement = Utilities.createTagWithClassName("div", "last-watched-element") as HTMLDivElement;
-        const lastAvailable: HTMLDivElement = Utilities.createTagWithClassName("div", "last-available-element") as HTMLDivElement;
+        const latestContainer: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LATEST_CONTAINER) as HTMLDivElement;
+        const lastWatched: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LAST_WATCHED_ELEMENT) as HTMLDivElement;
+        const lastAvailable: HTMLDivElement = Utilities.createTagWithClassName("div", Content.LAST_AVAILABLE_ELEMENT) as HTMLDivElement;
         const lastWatchedOne: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_1 + levelTwoHref) as HTMLDivElement;
         lastWatchedOne.innerText = Content.LOADING___;
         const lastWatchedTwo: HTMLDivElement = Utilities.createTagWithId("div", Content.LAST_WATCHED_2 + levelTwoHref) as HTMLDivElement;
@@ -291,18 +295,38 @@ img, video {
             thumbnail.onerror = async () => { // don't fail on error
                 await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
             }
-            const isLastElement: boolean = index === (thumbnailContainersLength - 1);
             const isSearchResultThumbnail: boolean = container.id === Content.L1_CONTAINER_ID;
+            if (isSearchResultThumbnail) {
+                this.observeThumbnail(thumbnail);
+                this.updateThumbnailContainer(thumbnailContainer);
+            }
+            const isLastElement: boolean = index === (thumbnailContainersLength - 1);
             if (isLastElement && isSearchResultThumbnail) {
                 thumbnail.className = Content.OBSERVE_THUMBNAIL;
             }
             container.appendChild(thumbnailContainer);
         } else if (container.id === Content.L1_CONTAINER_ID) {
             this.observeLastThumbnail();
-            for (const thumbnailContainer of thumbnailContainers) {
-                await this.updateThumbnailContainer(thumbnailContainer);
-            }
         }
+    }
+
+    private observeThumbnail(thumbnail: HTMLImageElement) {
+        thumbnail.setAttribute(Content.DATA_SEARCH_RESULT, this.searchResultsDocument.baseURI);
+        const callback = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach(async entry => {
+                if (entry.isIntersecting) {
+                    const observedThumbnail: HTMLImageElement = entry.target as HTMLImageElement;
+                    const searchResultHref: string = observedThumbnail.getAttribute(Content.DATA_SEARCH_RESULT);
+                    window.history.pushState({}, searchResultHref, searchResultHref);
+                }
+            })
+        }
+        const options: {} = {
+            root: null,
+            rootMargin: "0px"
+        }
+        const observer: IntersectionObserver = new IntersectionObserver(callback, options);
+        observer.observe(thumbnail);
     }
 
     private observeLastThumbnail() {
@@ -328,14 +352,14 @@ img, video {
         observer.observe(thumbnail);
     }
 
-    protected async updateThumbnailContainer(thumbnailContainer: HTMLDivElement): Promise<void> {
+    protected updateThumbnailContainer(thumbnailContainer: HTMLDivElement): void {
         const levelTwoHref: string = thumbnailContainer.getAttribute(Content.DATA_LEVEL_TWO_HREF);
-        const lastWatchedOne: HTMLDivElement = document.getElementById(Content.LAST_WATCHED_1 + levelTwoHref) as HTMLDivElement;
-        const lastWatchedTwo: HTMLDivElement = document.getElementById(Content.LAST_WATCHED_2 + levelTwoHref) as HTMLDivElement;
-        const lastAvailableOne: HTMLDivElement = document.getElementById(Content.LAST_AVAILABLE_1 + levelTwoHref) as HTMLDivElement;
-        const lastAvailableTwo: HTMLDivElement = document.getElementById(Content.LAST_AVAILABLE_2 + levelTwoHref) as HTMLDivElement;
+        const lastWatchedOne: HTMLDivElement = thumbnailContainer.querySelector(Utilities.PERIOD + Content.LAST_WATCHED_ELEMENT).children[0] as HTMLDivElement;
+        const lastWatchedTwo: HTMLDivElement = thumbnailContainer.querySelector(Utilities.PERIOD + Content.LAST_WATCHED_ELEMENT).children[1] as HTMLDivElement;
+        const lastAvailableOne: HTMLDivElement = thumbnailContainer.querySelector(Utilities.PERIOD + Content.LAST_AVAILABLE_ELEMENT).children[0] as HTMLDivElement;
+        const lastAvailableTwo: HTMLDivElement = thumbnailContainer.querySelector(Utilities.PERIOD + Content.LAST_AVAILABLE_ELEMENT).children[1] as HTMLDivElement;
 
-        await this.updateLevelOne(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
+        this.updateLevelOne(levelTwoHref, lastWatchedOne, lastWatchedTwo, lastAvailableOne, lastAvailableTwo);
     }
 
     protected abstract updateLevelOne(levelTwoHref: string, lastWatchedOne: HTMLDivElement, lastWatchedTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void;
@@ -343,58 +367,4 @@ img, video {
     // level two
     protected abstract loadLevelTwo(searchResultsThumbnailContainer: HTMLDivElement, levelOneScrollPosition: number): void;
 
-    // level three - the fullscreen experience
-    public async loadFullscreen(): Promise<void> {
-        localStorage.setItem(this.href, Date.now() + "");
-        const levelOneContainer: HTMLDivElement = document.getElementById(Content.L1_CONTAINER_ID) as HTMLDivElement;
-        const levelTwoHref: string = localStorage.getItem(Content.LEVEL_TWO_HREF + this.href);
-        const srcs: string[] = JSON.parse(localStorage.getItem(Content.SOURCES + levelTwoHref)) as string[];
-        // the things above can be sent to exhentai
-        for (const src of srcs) {
-            const image: HTMLImageElement = document.createElement("img");
-            image.src = src;
-            image.loading = "lazy";
-            levelOneContainer.appendChild(image);
-        }
-
-        const pOne: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pOne);
-        pOne.innerText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero. Sed dignissim lacinia nunc.`;
-
-        const pTwo: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pTwo);
-        pTwo.innerText = `Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.`;
-
-        const pThree: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pThree);
-        pThree.innerText = `Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilisi. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapien. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus.`;
-
-        const pFour: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pFour);
-        pFour.innerText = `Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc, viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ultrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi. Integer lacinia sollicitudin massa.`;
-
-        const pFive: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pFive);
-        pFive.innerText = `Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales.`;
-
-        const pSix: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pSix);
-        pSix.innerText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero. Sed dignissim lacinia nunc.`;
-
-        const pSeven: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pSeven);
-        pSeven.innerText = `Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.`;
-
-        const pEight: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pEight);
-        pEight.innerText = `Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilisi. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapien. Proin quam. Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus.`;
-
-        const pNine: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pNine);
-        pNine.innerText = `Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi sit amet augue congue elementum. Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc, viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ultrices enim. Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi. Integer lacinia sollicitudin massa.`;
-
-        const pTen: HTMLParagraphElement = document.createElement("p");
-        levelOneContainer.appendChild(pTen);
-        pTen.innerText = `Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante. Nulla quam. Aenean laoreet. Vestibulum nisi lectus, commodo ac, facilisis ac, ultricies eu, pede. Ut orci risus, accumsan porttitor, cursus quis, aliquet eget, justo. Sed pretium blandit orci. Ut eu diam at pede suscipit sodales.`;
-    }
 }

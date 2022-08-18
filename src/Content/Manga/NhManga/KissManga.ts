@@ -1,10 +1,6 @@
 class KissManga extends NhManga {
     private static readonly DATA_LAZY_SRC: string = "data-lazy-src";
 
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".nextpostslink") as HTMLAnchorElement;

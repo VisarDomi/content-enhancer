@@ -1,8 +1,4 @@
 class MangaHub extends NhManga {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".next").children[0] as HTMLAnchorElement;

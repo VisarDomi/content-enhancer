@@ -1,8 +1,4 @@
 class KissJav extends Video {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".pagination-next") as HTMLAnchorElement;

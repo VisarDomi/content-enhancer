@@ -10,6 +10,10 @@ img, video {
     width: 100%;
 }
 
+video {
+    z-index: 1;
+}
+
 .level-one-thumbnail-container {
     position: relative;
 }

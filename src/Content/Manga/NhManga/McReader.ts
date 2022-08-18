@@ -1,8 +1,4 @@
 class McReader extends NhManga {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         const paginationChildren: HTMLCollectionOf<HTMLLIElement> = this.searchResultsDocument.querySelector(".pagination").children as HTMLCollectionOf<HTMLLIElement>;

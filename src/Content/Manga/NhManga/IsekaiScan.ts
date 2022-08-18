@@ -1,8 +1,4 @@
 class IsekaiScan extends NhManga {
-    constructor() {
-        super(location.href);
-    }
-
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
         return this.searchResultsDocument.querySelector(".nav-previous").children[0] as HTMLAnchorElement;

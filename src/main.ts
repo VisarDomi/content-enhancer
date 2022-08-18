@@ -1,5 +1,5 @@
 async function load() {
-    const href = location.href;
+    const href = window.location.href;
     let content: Content = null;
     if (href.includes("tokyomotion")) {
         content = new TokyoMotion();

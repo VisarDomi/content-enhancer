@@ -1,8 +1,8 @@
 abstract class Manga extends Content {
     // level one
-    protected async updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): Promise<void> {
+    protected updateLevelOne(levelTwoHref: string, lastReadOne: HTMLDivElement, lastReadTwo: HTMLDivElement, lastAvailableOne: HTMLDivElement, lastAvailableTwo: HTMLDivElement): void {
         lastAvailableOne.innerText = this.getLastAvailableOneInnerText();
-        lastAvailableTwo.innerText = this.getLastAvailableTwoInnerText(levelTwoHref);
+        lastAvailableTwo.innerText = Utilities.hyphenateLongWord(this.getLastAvailableTwoInnerText(levelTwoHref));
         lastReadOne.innerText = "Never read before";
         lastReadTwo.innerText = "New";
         try {
@@ -20,7 +20,7 @@ abstract class Manga extends Content {
             const lastReadItem: { name: string, lastRead: number } = readCollection.reduce(Utilities.getLastReadChapter);
             if (lastReadItem) {
                 lastReadOne.innerText = "Read: " + Utilities.getTimeAgo(lastReadItem.lastRead + "");
-                lastReadTwo.innerText = this.getLastReadTwoInnerText(lastReadItem.name);
+                lastReadTwo.innerText = Utilities.hyphenateLongWord(this.getLastReadTwoInnerText(lastReadItem.name));
             }
         } catch (ignored) {
         }
