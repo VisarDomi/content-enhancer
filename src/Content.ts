@@ -1,3 +1,7 @@
+interface IContent {
+    init(): Promise<void>;
+}
+
 abstract class Content implements IContent {
     protected static readonly CSS_INNER_HTML: string = `
 /* level 1 */
@@ -173,16 +177,14 @@ img, video {
     protected static readonly LEVEL_TWO_HREF: string = "level-two-href";
 
     private readonly href: string;
-    private readonly fullscreen: boolean;
     protected searchResultsDocument: Document;
     protected thumbnailContainers: HTMLDivElement[];
     protected breakLoop: boolean;
     private nextSearchResultsHref: string;
     private searchResultsThumbnails: HTMLElement[];
 
-    protected constructor(href: string, fullscreen: boolean = false) {
+    protected constructor(href: string) {
         this.href = href;
-        this.fullscreen = fullscreen;
     }
 
     public async init() {
@@ -195,11 +197,7 @@ img, video {
         styleTag.innerHTML = Content.CSS_INNER_HTML;
         head.appendChild(styleTag);
 
-        if (this.fullscreen) {
-            await this.loadFullscreen();
-        } else {
-            await this.load();
-        }
+        await this.load();
     }
 
     // level one

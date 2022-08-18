@@ -1,6 +1,6 @@
 class ExHentai extends HManga {
-    constructor(fullscreen: boolean = false) {
-        super(location.href, fullscreen);
+    constructor() {
+        super(location.href);
     }
 
     // level one
@@ -81,48 +81,9 @@ class ExHentai extends HManga {
         return levelTwoThumbnail.alt;
     }
 
-    // level three - it does not exist for exhentai (because of the fullscreen experience)
-    protected async loadLevelThree(elementContainer: HTMLDivElement, levelTwoScrollPosition: number, infoClicked = false): Promise<void> {
-        const levelThreeHref: string = elementContainer.getAttribute(ExHentai.DATA_LEVEL_THREE_HREF);
-        const levelTwoContainer: HTMLDivElement = document.getElementById(ExHentai.L2_CONTAINER_ID) as HTMLDivElement;
-        const levelTwoHref: string = levelTwoContainer.getAttribute(ExHentai.DATA_LEVEL_TWO_HREF);
-        localStorage.setItem(Content.LEVEL_TWO_HREF + levelThreeHref, levelTwoHref);
-
-        const levelThreeHrefs: string[] = JSON.parse(localStorage.getItem(Content.LEVEL_THREE_HREFS + levelTwoHref)) as string[];
-        let index: number = levelThreeHrefs.indexOf(levelThreeHref);
-        const promises: Promise<Document>[] = [];
-        for (index; index < levelThreeHrefs.length; index++) {
-            const levelThreeHref: string = levelThreeHrefs[index];
-            const promise: Promise<Document> = Utilities.getResponseDocument(levelThreeHref);
-            promises.push(promise);
-        }
-
-        const responses: Document[] = await Promise.all(promises); // parallel requests everywhere
-        const nlPromises: Promise<Document>[] = [];
-        for (const response of responses) {
-            const nlPromise: Promise<Document> = Utilities.getResponseDocument(this.getNlHref(response));
-            nlPromises.push(nlPromise);
-        }
-
-        const nlResponses: Document[] = await Promise.all(nlPromises); // parallel requests everywhere
-
-        const srcs: string[] = [];
-        for (const nlResponse of nlResponses) {
-            const nlImage: HTMLImageElement = nlResponse.getElementById("img") as HTMLImageElement;
-            srcs.push(nlImage.src);
-        }
-
-        localStorage.setItem(Content.SOURCES + levelTwoHref, JSON.stringify(srcs));
-        window.open(levelThreeHref, levelTwoHref);
-    }
-
-    private getNlHref(response: Document): string {
-        const nl: string = response.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
-        return response.baseURI + "?nl=" + nl;
-    }
-
     protected async getLevelThreeImage(imageDocument: Document): Promise<HTMLImageElement> {
-        const nlDocument: Document = await Utilities.getResponseDocument(this.getNlHref(imageDocument));
+        const nl: string = imageDocument.getElementById("loadfail").outerHTML.split("nl('")[1].split("'")[0];
+        const nlDocument: Document = await Utilities.getResponseDocument(imageDocument.baseURI + "?nl=" + nl);
         return nlDocument.getElementById("i3").children[0].children[0] as HTMLImageElement;
     }
 

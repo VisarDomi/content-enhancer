@@ -8,17 +8,9 @@ async function load() {
     } else if (href.includes("ytboob")) {
         content = new YtBoob();
     } else if (href.includes("nhentai") && !href.includes("__cf_chl_rt_tk")) {
-        if (href.match(/\//g).length !== 6) {
-            content = new NHentai();
-        } else {
-            content = new NHentai(true);
-        }
+        content = new NHentai();
     } else if (href.includes("exhentai") || href.includes("e-hentai") && !href.includes(".php")) {
-        if (href.match(/\//g).length !== 5) {
-            content = new ExHentai();
-        } else {
-            content = new ExHentai(true);
-        }
+        content = new ExHentai();
     } else if (href.includes("kissmanga")) {
         content = new KissManga();
     } else if (href.includes("mcreader")) {

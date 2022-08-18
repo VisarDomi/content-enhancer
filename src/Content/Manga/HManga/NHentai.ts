@@ -1,6 +1,6 @@
 class NHentai extends HManga {
-    constructor(fullscreen: boolean = false) {
-        super(location.href, fullscreen);
+    constructor() {
+        super(location.href);
     }
 
     // level one
