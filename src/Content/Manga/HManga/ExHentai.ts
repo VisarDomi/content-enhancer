@@ -1,7 +1,8 @@
 class ExHentai extends HManga {
     // level one
     protected getNextSearchResultsAnchor(): HTMLAnchorElement {
-        return this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children[10].children[0] as HTMLAnchorElement;
+        const pages: HTMLCollectionOf<HTMLTableElement> = this.searchResultsDocument.querySelector(".ptb").children[0].children[0].children as HTMLCollectionOf<HTMLTableElement>;
+        return pages[pages.length - 1].children[0] as HTMLAnchorElement;
     }
 
     protected getSearchResultsThumbnails(): HTMLElement[] {
