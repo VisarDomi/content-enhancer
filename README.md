@@ -27,3 +27,7 @@ or follow the instructions below:
 4. Start using the script by going to one of the above [sites](https://mangahub.io/search?q=&order=LATEST&genre=action)
 5. Note: The back button is invisible in the top 3rd of the screen
 
+
+## Easter-egg
+You can also watch cartoons and anime (using this enhancer) from this site:
+* https://www.wcofun.com

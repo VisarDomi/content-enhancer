@@ -28,6 +28,11 @@ abstract class Video extends Content {
         const length: number =  searchResultsThumbnailContainer.children.length;
         searchResultsThumbnailContainer.children[length - 1].remove(); // remove the last child.
         searchResultsThumbnailContainer.appendChild(levelTwoVideo);
+        levelTwoVideo.onplay = () => {
+            const latestContainer: HTMLDivElement = searchResultsThumbnailContainer.getElementsByClassName(Content.LATEST_CONTAINER)[0] as HTMLDivElement;
+            const className: string = latestContainer.getAttribute(Content.CLASS);
+            latestContainer.setAttribute(Content.CLASS, className + " hide");
+        }
 
         // update last watched
         const lastWatchedOne: HTMLDivElement = document.getElementById(Content.LAST_WATCHED_1 + levelTwoHref) as HTMLDivElement;
@@ -56,7 +61,7 @@ abstract class Video extends Content {
         return levelTwoVideo;
     }
 
-    private async getBestSource(levelTwoHref: string): Promise<HTMLSourceElement> {
+    protected async getBestSource(levelTwoHref: string): Promise<HTMLSourceElement> {
         const levelTwoSource: HTMLSourceElement = document.createElement("source");
         const videoDocument: Document = await Utilities.getResponseDocument(levelTwoHref);
         const video: HTMLVideoElement = this.getVideo(videoDocument);

@@ -16,10 +16,6 @@ img, video {
     width: 100%;
 }
 
-video {
-    z-index: 1;
-}
-
 .level-one-thumbnail-container {
     position: relative;
 }
@@ -46,6 +42,10 @@ video {
     display: flex;
     flex-direction: column;
     align-items: end;
+}
+
+.hide {
+    display: none;
 }
 
 /* level 2 */
@@ -162,6 +162,7 @@ video {
     protected static readonly DATA_LEVEL_THREE_HREF: string = "data-level-three-href";
     protected static readonly DATA_DURATION: string = "data-duration";
     protected static readonly DATA_SEARCH_RESULT: string = "data-search-result";
+    protected static readonly GETTING_SOURCE: string = "getting-source";
     protected static readonly LEVEL_ONE_THUMBNAIL_CONTAINER: string = "level-one-thumbnail-container";
     protected static readonly LEVEL_TWO_THUMBNAIL_CONTAINER: string = "level-two-thumbnail-container";
     protected static readonly OBSERVE_THUMBNAIL: string = "observe-thumbnail";
@@ -182,30 +183,38 @@ video {
     protected static readonly ITEM_NAME: string = "item-name";
     protected static readonly LAST_AVAILABLE: string = "last-available";
 
+    protected gettingSource: boolean;
     protected searchResultsDocument: Document;
     protected thumbnailContainers: HTMLDivElement[];
     protected breakLoop: boolean;
     private nextSearchResultsHref: string;
-    private searchResultsThumbnails: HTMLElement[];
 
-    public constructor() {
+    public constructor(gettingSource: boolean = false) {
+        this.gettingSource = gettingSource;
     }
 
     public async init(): Promise<void> {
-        document.write("<html><head></head><body></body></html>");
-        const body = document.querySelector("body");
-        const head = document.querySelector("head");
-        const levelOneContainer: HTMLDivElement = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID) as HTMLDivElement;
-        body.appendChild(levelOneContainer);
-        const styleTag: HTMLScriptElement = Utilities.createTagWithId("style", "content-enhancer-css") as HTMLScriptElement;
-        styleTag.innerHTML = Content.CSS_INNER_HTML;
-        head.appendChild(styleTag);
+        if (this.gettingSource) {
+            await this.initSource();
+        } else {
+            document.write("<html><head></head><body></body></html>");
+            const body = document.querySelector("body");
+            const head = document.querySelector("head");
+            const levelOneContainer: HTMLDivElement = Utilities.createTagWithId("div", Content.L1_CONTAINER_ID) as HTMLDivElement;
+            body.appendChild(levelOneContainer);
+            const styleTag: HTMLScriptElement = Utilities.createTagWithId("style", "content-enhancer-css") as HTMLScriptElement;
+            styleTag.innerHTML = Content.CSS_INNER_HTML;
+            head.appendChild(styleTag);
 
-        await this.load(window.location.href);
+            await this.load(window.location.href);
+        }
+    }
+
+    protected async initSource(): Promise<void> {
     }
 
     // level one
-    public async load(href: string): Promise<void> {
+    protected async load(href: string): Promise<void> {
         this.searchResultsDocument = await Utilities.getResponseDocument(href);
         this.setNextSearchResultsHref();
         this.createThumbnailContainers();
@@ -224,8 +233,8 @@ video {
 
     private createThumbnailContainers(): void {
         this.thumbnailContainers = [];
-        this.searchResultsThumbnails = this.getSearchResultsThumbnails();
-        for (const searchResultsThumbnail of this.searchResultsThumbnails) {
+        const searchResultsThumbnails = this.getSearchResultsThumbnails();
+        for (const searchResultsThumbnail of searchResultsThumbnails) {
             this.appendThumbnailContainer(searchResultsThumbnail);
         }
     }
@@ -290,10 +299,10 @@ video {
             const thumbnail: HTMLImageElement = thumbnailContainer.querySelector("img");
             thumbnail.src = thumbnail.getAttribute(Content.DATA_SRC);
             thumbnail.onload = async () => {
-                await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
+                await this.loadThumbnailContainer(thumbnailContainers, container, index + 1);
             }
             thumbnail.onerror = async () => { // don't fail on error
-                await this.loadThumbnailContainer(thumbnailContainers, container, ++index);
+                await this.loadThumbnailContainer(thumbnailContainers, container, index + 1);
             }
             const isSearchResultThumbnail: boolean = container.id === Content.L1_CONTAINER_ID;
             if (isSearchResultThumbnail) {
