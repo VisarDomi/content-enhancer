@@ -14,20 +14,20 @@ async function load() {
         } else if (slashes === 3) {
             content = new WcoFun(true);
         }
-    } else if (href.includes("nhentai") && !href.includes("__cf_chl_rt_tk")) { // don't activate the script when cloudflare is active
+    } else if (href.includes("nhentai.net/search/?") && !href.includes("__cf_chl_rt_tk")) { // don't activate the script when cloudflare is active
         content = new NHentai();
-    } else if (href.includes("exhentai") || href.includes("e-hentai") && !href.includes(".php")) { // don't activate the script on .php pages
+    } else if (href.includes("exhentai.org/?") || href.includes("e-hentai.org/?")) {
         content = new ExHentai();
-    } else if (href.includes("kissmanga")) {
-        content = new KissManga();
-    } else if (href.includes("mcreader")) {
-        content = new McReader();
-    } else if (href.includes("mangahub")) {
-        content = new MangaHub();
-    } else if (href.includes("readm")) {
-        content = new ReadM();
     } else if (href.includes("isekaiscan")) {
         content = new IsekaiScan();
+    } else if (href.includes("1stkissmanga.io")) {
+        content = new KissManga();
+    } else if (href.includes("mangahub.io/search/")) {
+        content = new MangaHub();
+    } else if (href.includes("mcreader.net/browse-comics")) {
+        content = new McReader();
+    } else if (href.includes("readm.org/latest-releases")) {
+        content = new ReadM();
     }
 
     await content?.init();
