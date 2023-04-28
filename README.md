@@ -1,3 +1,7 @@
+There's now an iOS app (Aidoku) that is better than this script: https://github.com/Aidoku/Aidoku
+
+
+
 Read this documentation with interactive videos: [https://visardomi.github.io/content-enhancer/](https://visardomi.github.io/content-enhancer/)
 
 # content-enhancer
